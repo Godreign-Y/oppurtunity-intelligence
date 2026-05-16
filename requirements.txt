@@ -1,0 +1,20 @@
+# Web Framework & Server
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+
+# Data Acquisition (Async HTTP)
+httpx>=0.27.0
+
+# Data Validation & Configuration
+pydantic>=2.7.0
+pydantic-settings>=2.2.0
+python-dotenv>=1.0.1
+
+# Database & ORM (Neon / Serverless Postgres)
+sqlalchemy>=2.0.30
+alembic>=1.13.1
+psycopg[binary]>=3.1.19
+
+# Text Sanitization (Cleaning Raw Job Descriptions)
+beautifulsoup4>=4.12.3
+lxml>=5.2.2
