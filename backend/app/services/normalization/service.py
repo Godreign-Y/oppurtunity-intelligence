@@ -2,6 +2,9 @@
 Normalization service using github_signals.
 """
 
+import json
+from pathlib import Path
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -9,11 +12,31 @@ from app.models.github_signal import GitHubSignal
 from app.models.normalized_signal import NormalizedSignal
 
 from app.normalization.rules import (
-    classify_signal,
     detect_ecosystem,
     detect_severity,
     calculate_confidence,
 )
+
+
+# ✅ LOAD KEYWORDS FROM FILE
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+KEYWORDS_FILE = BASE_DIR / "normalization" / "keywords.json"
+
+with open(KEYWORDS_FILE, "r") as f:
+    SIGNAL_RULES = json.load(f)
+
+
+def classify_signal(text: str):
+    """
+    Classify text using external keyword rules.
+    """
+    text = text.lower()
+
+    for signal_type, keywords in SIGNAL_RULES.items():
+        if any(keyword in text for keyword in keywords):
+            return signal_type
+
+    return "UNKNOWN"
 
 
 class NormalizationService:
@@ -41,7 +64,7 @@ class NormalizationService:
 
             normalized = NormalizedSignal(
                 github_signal_id=gh.id,
-                signal_type=classify_signal(text),
+                signal_type=classify_signal(text),  # ✅ now uses JSON
                 severity=detect_severity(text),
                 ecosystem=detect_ecosystem(text),
                 confidence=calculate_confidence(text),
