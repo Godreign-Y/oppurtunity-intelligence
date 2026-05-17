@@ -1,11 +1,15 @@
 """Clustering pipeline orchestrator."""
 
+import asyncio
+
 import numpy as np
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from redit.aggregation.models import ClusterAnalysis
 from redit.clustering.repository import ClusteringRepository
-from redit.clustering.service import SemanticClusteringService
+from redit.clustering.service import (
+    SemanticClusteringService,
+)
 from redit.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -13,81 +17,98 @@ logger = get_logger(__name__)
 
 class ClusteringOrchestrator:
     """
-    Semantic clustering: UMAP + HDBSCAN.
+    Semantic clustering:
+    UMAP + HDBSCAN.
 
-    Returns in-memory cluster analysis for aggregation.
-    Does NOT persist intermediate clustering results.
+    Returns in-memory cluster analysis.
     """
 
     def __init__(self) -> None:
-        """Initialize clustering service and repository."""
 
         self.clustering_service = (
             SemanticClusteringService()
         )
 
-        self.repository = ClusteringRepository()
+        self.repository = (
+            ClusteringRepository()
+        )
 
     async def run_and_analyze(
         self,
         db: AsyncSession,
     ) -> dict[int, ClusterAnalysis]:
         """
-        Execute clustering pipeline and return in-memory analysis.
+        Execute clustering pipeline.
 
-        Steps:
-        1. Fetch all canonical records + embeddings
-        2. Reduce dimensionality with UMAP
-        3. Cluster with HDBSCAN
-        4. Analyze cluster membership data
-        5. Return cluster analyses (no persistence)
-
-        Returns:
-            dict mapping cluster_id -> ClusterAnalysis
+        CPU-heavy clustering work is moved
+        off the main async event loop.
         """
 
         logger.info(
-            "Starting clustering pipeline (in-memory)"
+            "Starting clustering pipeline"
         )
 
-        records = await self.repository.fetch_all_records(
-            db
+        records = (
+            await self.repository.fetch_all_records(
+                db
+            )
         )
 
         logger.info(
             "Fetched records for clustering",
-            extra={"count": len(records)},
+            extra={
+                "count": len(records)
+            },
         )
 
         if len(records) == 0:
+
             logger.warning(
-                "No records found for clustering"
+                "No records found"
             )
 
             return {}
 
         if len(records) < 5:
+
             logger.warning(
-                "Insufficient records for HDBSCAN clustering",
-                extra={"count": len(records)},
+                "Insufficient records for clustering",
+                extra={
+                    "count": len(records)
+                },
             )
 
             return {}
 
-        record_ids = [r[0] for r in records]
+        record_ids = [
+            r[0]
+            for r in records
+        ]
 
-        problem_statements = [r[1] for r in records]
+        problem_statements = [
+            r[1]
+            for r in records
+        ]
 
-        embeddings_list = [r[2] for r in records]
+        embeddings_list = [
+            r[2]
+            for r in records
+        ]
 
         embeddings = np.array(
             embeddings_list,
             dtype=np.float32,
         )
 
+        # -----------------------------------
+        # OFFLOAD CPU-HEAVY CLUSTERING
+        # TO BACKGROUND THREAD
+        # -----------------------------------
+
         reduced_embeddings, labels = (
-            self.clustering_service.fit_and_predict(
-                embeddings
+            await asyncio.to_thread(
+                self.clustering_service.fit_and_predict,
+                embeddings,
             )
         )
 
@@ -100,7 +121,8 @@ class ClusteringOrchestrator:
         logger.info(
             "Generated cluster assignments",
             extra={
-                "n_clusters": len(cluster_assignments)
+                "n_clusters":
+                    len(cluster_assignments)
             },
         )
 
@@ -118,6 +140,7 @@ class ClusteringOrchestrator:
             )
 
             for idx in indices:
+
                 analysis.record_ids.append(
                     record_ids[idx]
                 )
@@ -126,12 +149,15 @@ class ClusteringOrchestrator:
                     problem_statements[idx]
                 )
 
-            cluster_analyses[cluster_id] = analysis
+            cluster_analyses[
+                cluster_id
+            ] = analysis
 
         logger.info(
             "Cluster analysis complete",
             extra={
-                "clusters": len(cluster_analyses)
+                "clusters":
+                    len(cluster_analyses)
             },
         )
 
@@ -140,21 +166,17 @@ class ClusteringOrchestrator:
     async def fetch_cluster_metadata(
         self,
         db: AsyncSession,
-        cluster_analyses: dict[int, ClusterAnalysis],
+        cluster_analyses: dict[
+            int,
+            ClusterAnalysis,
+        ],
     ) -> None:
         """
-        Enrich cluster analyses with metadata
-        from canonical records.
-
-        Fetches:
-        - frustration scores
-        - business relevance
-        - tools
-        - companies
+        Enrich cluster analyses with metadata.
         """
 
         logger.info(
-            "Enriching cluster analyses with metadata"
+            "Enriching cluster metadata"
         )
 
         from sqlalchemy import select
@@ -165,16 +187,22 @@ class ClusteringOrchestrator:
 
         relevant_ids = []
 
-        for analysis in cluster_analyses.values():
+        for analysis in (
+            cluster_analyses.values()
+        ):
+
             relevant_ids.extend(
                 analysis.record_ids
             )
 
-        relevant_ids = list(set(relevant_ids))
+        relevant_ids = list(
+            set(relevant_ids)
+        )
 
         if not relevant_ids:
+
             logger.warning(
-                "No relevant cluster IDs found"
+                "No relevant IDs found"
             )
 
             return
@@ -201,16 +229,23 @@ class ClusteringOrchestrator:
             for r in result.fetchall()
         }
 
-        for _, analysis in (
-            cluster_analyses.items()
+        for analysis in (
+            cluster_analyses.values()
         ):
 
-            for record_id in analysis.record_ids:
+            for record_id in (
+                analysis.record_ids
+            ):
 
-                if record_id not in records_by_id:
+                if (
+                    record_id
+                    not in records_by_id
+                ):
                     continue
 
-                rec = records_by_id[record_id]
+                rec = records_by_id[
+                    record_id
+                ]
 
                 analysis.frustration_scores.append(
                     rec[1]

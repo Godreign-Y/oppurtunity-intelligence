@@ -1,10 +1,7 @@
-"""Stream pipeline: process one Reddit post at a time through filter stages."""
+"""Stream pipeline: process one Reddit post through filter stages."""
 
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from redit.embeddings.service import EmbeddingService
 from redit.filters.base import FilterStage
 from redit.intelligence.builder import IntelligenceBuilder
 from redit.models.pipeline import (
@@ -14,9 +11,6 @@ from redit.models.pipeline import (
 )
 from redit.models.reddit import RawRedditPost
 from redit.pipelines.context import PipelineContext
-from redit.storage.repository import (
-    CanonicalIntelligenceRepository,
-)
 from redit.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -24,8 +18,18 @@ logger = get_logger(__name__)
 
 class PipelineOrchestrator:
     """
-    Applies ordered filter stages
-    to each post sequentially.
+    Pure semantic filtering pipeline.
+
+    Responsibilities:
+    - filtering
+    - normalization
+    - canonicalization
+    - intelligence extraction
+
+    NO:
+    - embeddings
+    - database
+    - persistence
     """
 
     def __init__(
@@ -42,27 +46,14 @@ class PipelineOrchestrator:
             or IntelligenceBuilder()
         )
 
-        self._embedding_service = (
-            EmbeddingService()
-        )
-
-        self._repository = (
-            CanonicalIntelligenceRepository(
-                embedding_service=(
-                    self._embedding_service
-                ),
-            )
-        )
-
     async def process_post(
         self,
         post: RawRedditPost,
         run_id: UUID,
-        db_session: AsyncSession,
     ) -> PipelineRunResult:
         """
         Process one Reddit post
-        through all pipeline stages.
+        through semantic pipeline only.
         """
 
         context = PipelineContext(
@@ -90,6 +81,7 @@ class PipelineOrchestrator:
             ):
 
                 if result.metadata:
+
                     context.merge_metadata(
                         result.metadata
                     )
@@ -137,21 +129,12 @@ class PipelineOrchestrator:
         )
 
         logger.debug(
-            "Post passed pipeline",
+            "Post passed semantic pipeline",
             extra={
                 "post_id": post.id,
                 "product":
                     intelligence.product,
             },
-        )
-
-        # -----------------------------------
-        # Use SAME ingestion batch session
-        # -----------------------------------
-
-        await self._repository.store_record(
-            db=db_session,
-            record=intelligence,
         )
 
         return PipelineRunResult(

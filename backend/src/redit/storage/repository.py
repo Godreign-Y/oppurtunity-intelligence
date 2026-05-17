@@ -1,5 +1,6 @@
 """Persistence repository for canonical intelligence."""
 
+import asyncio
 from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +17,7 @@ class CanonicalIntelligenceRepository:
         self,
         embedding_service: EmbeddingService,
     ) -> None:
+
         self.embedding_service = embedding_service
 
     async def store_record(
@@ -27,16 +29,21 @@ class CanonicalIntelligenceRepository:
         Persist intelligence record with embedding.
 
         IMPORTANT:
+        - Embedding generation runs in background thread
+        - Prevents asyncio event loop blocking
+        - Prevents Neon asyncpg disconnects
         - Uses flush() instead of commit()
-        - Prevents Neon/asyncpg connection churn
-        - Allows batching across ingestion lifecycle
         """
 
-        embedding = (
-            self.embedding_service.generate_embedding(
-                problem_statement=record.problem_statement,
-                pain_category=record.pain_category,
-            )
+        # -----------------------------------------
+        # OFFLOAD CPU-HEAVY EMBEDDING GENERATION
+        # TO BACKGROUND THREAD
+        # -----------------------------------------
+
+        embedding = await asyncio.to_thread(
+            self.embedding_service.generate_embedding,
+            problem_statement=record.problem_statement,
+            pain_category=record.pain_category,
         )
 
         db_record = CanonicalIntelligenceORM(
@@ -58,7 +65,7 @@ class CanonicalIntelligenceRepository:
         db.add(db_record)
 
         # Flush sends INSERT without ending transaction.
-        # Much more stable for asyncpg + Neon.
+        # Keeps transaction alive without commit churn.
         await db.flush()
 
     async def commit(
@@ -66,9 +73,7 @@ class CanonicalIntelligenceRepository:
         db: AsyncSession,
     ) -> None:
         """
-        Commit full ingestion batch transaction.
-
-        Should be called ONCE after ingestion completes.
+        Commit ingestion batch transaction.
         """
 
         await db.commit()
@@ -77,6 +82,8 @@ class CanonicalIntelligenceRepository:
         self,
         db: AsyncSession,
     ) -> None:
-        """Rollback failed ingestion transaction."""
+        """
+        Rollback failed ingestion transaction.
+        """
 
         await db.rollback()

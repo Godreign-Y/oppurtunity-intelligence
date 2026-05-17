@@ -3,14 +3,26 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from redit.aggregation.orchestrator import AggregationOrchestrator
+from redit.aggregation.orchestrator import (
+    AggregationOrchestrator,
+)
 from redit.config.settings import Settings
-from redit.filters.registry import build_filter_pipeline
+from redit.embeddings.service import EmbeddingService
+from redit.filters.registry import (
+    build_filter_pipeline,
+)
 from redit.ingestion.base import RedditSource
-from redit.ingestion.discovery_stream import iter_discovery_posts
-from redit.ingestion.factory import create_reddit_source
+from redit.ingestion.discovery_stream import (
+    iter_discovery_posts,
+)
+from redit.ingestion.factory import (
+    create_reddit_source,
+)
 from redit.ml.registry import ModelRegistry
 from redit.models.discovery import GlobalFeed
+from redit.models.intelligence import (
+    IntelligenceRecord,
+)
 from redit.models.pipeline import (
     IngestionRequest,
     IngestionResponse,
@@ -18,9 +30,16 @@ from redit.models.pipeline import (
     IngestionRunSummary,
     PipelineRejectRecord,
 )
-from redit.pipelines.orchestrator import PipelineOrchestrator
+from redit.pipelines.orchestrator import (
+    PipelineOrchestrator,
+)
 from redit.storage.base import RunStore
-from redit.storage.database import AsyncSessionLocal
+from redit.storage.database import (
+    AsyncSessionLocal,
+)
+from redit.storage.repository import (
+    CanonicalIntelligenceRepository,
+)
 from redit.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -28,9 +47,22 @@ logger = get_logger(__name__)
 
 class IngestionService:
     """
-    Fetches Reddit discovery feeds, subreddit streams,
-    and search queries, processes posts one-by-one,
-    and stores validated intelligence JSON.
+    Staged ingestion pipeline.
+
+    Stage 1:
+    - Reddit discovery
+    - filtering
+    - normalization
+    - canonicalization
+    - intelligence extraction
+
+    Stage 2:
+    - embedding generation
+    - persistence
+
+    Stage 3:
+    - clustering
+    - aggregation
     """
 
     def __init__(
@@ -49,13 +81,9 @@ class IngestionService:
         self,
         request: IngestionRequest,
     ) -> IngestionResponse:
-        """Run Reddit discovery ingestion and return run summary."""
+        """Run Reddit discovery ingestion."""
 
         run_id = uuid4()
-
-        # ---------------------------------------------------
-        # Parse request inputs
-        # ---------------------------------------------------
 
         feeds = request.feeds or []
 
@@ -65,11 +93,10 @@ class IngestionService:
             [],
         ) or []
 
-        searches = request.search_queries or []
-
-        # ---------------------------------------------------
-        # Human-readable source tracking
-        # ---------------------------------------------------
+        searches = (
+            request.search_queries
+            or []
+        )
 
         sources = (
             [f"r/{feed}" for feed in feeds]
@@ -83,54 +110,49 @@ class IngestionService:
             ]
         )
 
-        # ---------------------------------------------------
-        # Create run summary
-        # ---------------------------------------------------
-
         summary = IngestionRunSummary(
             run_id=run_id,
-            status=IngestionRunStatus.RUNNING,
-            started_at=datetime.now(timezone.utc),
+            status=(
+                IngestionRunStatus.RUNNING
+            ),
+            started_at=datetime.now(
+                timezone.utc
+            ),
             sources=sources,
             sort=request.sort,
-            limit_per_source=request.limit_per_source,
+            limit_per_source=(
+                request.limit_per_source
+            ),
         )
 
-        await self._run_store.create_run(summary)
+        await self._run_store.create_run(
+            summary
+        )
 
         source: RedditSource | None = None
-        db_session = None
 
         try:
-            # ---------------------------------------------------
-            # Create SINGLE database session
-            # for full ingestion lifecycle
-            # ---------------------------------------------------
 
-            db_session = AsyncSessionLocal()
-
-            # ---------------------------------------------------
+            # -----------------------------------
             # Create Reddit source
-            # ---------------------------------------------------
+            # -----------------------------------
 
             source = create_reddit_source(
                 self._settings
             )
 
-            # ---------------------------------------------------
-            # Build pipeline
-            # ---------------------------------------------------
+            # -----------------------------------
+            # Build semantic pipeline
+            # -----------------------------------
 
-            pipeline = PipelineOrchestrator(
-                build_filter_pipeline(
-                    self._settings,
-                    self._models,
+            pipeline = (
+                PipelineOrchestrator(
+                    build_filter_pipeline(
+                        self._settings,
+                        self._models,
+                    )
                 )
             )
-
-            # ---------------------------------------------------
-            # Execute ingestion run
-            # ---------------------------------------------------
 
             summary = await self._execute_run(
                 summary=summary,
@@ -139,14 +161,16 @@ class IngestionService:
                 feeds=feeds,
                 subreddits=subreddits,
                 search_queries=searches,
-                db_session=db_session,
             )
 
         except Exception as exc:
 
             logger.exception(
                 "Ingestion run failed",
-                extra={"run_id": str(run_id)},
+                extra={
+                    "run_id":
+                        str(run_id)
+                },
             )
 
             summary.status = (
@@ -155,25 +179,15 @@ class IngestionService:
 
             summary.error_message = str(exc)
 
-            summary.finished_at = datetime.now(
-                timezone.utc
+            summary.finished_at = (
+                datetime.now(
+                    timezone.utc
+                )
             )
 
             await self._run_store.update_run(
                 summary
             )
-
-            # ---------------------------------------------------
-            # Rollback full transaction batch
-            # ---------------------------------------------------
-
-            if db_session is not None:
-
-                await db_session.rollback()
-
-                logger.info(
-                    "Transaction rolled back"
-                )
 
             raise
 
@@ -181,13 +195,6 @@ class IngestionService:
 
             if source is not None:
                 await source.close()
-
-            # ---------------------------------------------------
-            # Always close session
-            # ---------------------------------------------------
-
-            if db_session is not None:
-                await db_session.close()
 
         return self._to_response(summary)
 
@@ -199,44 +206,73 @@ class IngestionService:
         feeds: list[GlobalFeed],
         subreddits: list[str],
         search_queries: list[str],
-        db_session,
     ) -> IngestionRunSummary:
         """
-        Stream Reddit posts and process each
-        through the pipeline.
+        Execute staged ingestion flow.
 
-        Uses:
-        - ONE session
-        - MANY flushes
-        - ONE final commit
+        Stage 1:
+        semantic filtering only
+
+        Stage 2:
+        embedding + persistence
+
+        Stage 3:
+        clustering + aggregation
         """
 
-        rejects_by_stage: dict[str, int] = {}
+        rejects_by_stage: dict[
+            str,
+            int,
+        ] = {}
 
-        async for post in iter_discovery_posts(
-            source=source,
-            feeds=feeds,
-            subreddits=subreddits,
-            search_queries=search_queries,
-            sort=summary.sort,
-            limit_per_source=summary.limit_per_source,
-            delay_seconds=(
-                self._settings
-                .reddit_request_delay_seconds
-            ),
+        # -----------------------------------
+        # STAGE 1 OUTPUT BUFFER
+        # -----------------------------------
+
+        validated_records: list[
+            IntelligenceRecord
+        ] = []
+
+        # -----------------------------------
+        # STAGE 1
+        # -----------------------------------
+
+        logger.info(
+            "Starting Stage 1: "
+            "discovery + filtering"
+        )
+
+        async for post in (
+            iter_discovery_posts(
+                source=source,
+                feeds=feeds,
+                subreddits=subreddits,
+                search_queries=
+                    search_queries,
+                sort=summary.sort,
+                limit_per_source=(
+                    summary
+                    .limit_per_source
+                ),
+                delay_seconds=(
+                    self._settings
+                    .reddit_request_delay_seconds
+                ),
+            )
         ):
 
             summary.posts_fetched += 1
 
-            result = await pipeline.process_post(
-                post,
-                summary.run_id,
-                db_session,
+            result = (
+                await pipeline.process_post(
+                    post,
+                    summary.run_id,
+                )
             )
 
-            # ---------------------------------------------------
-            # Passed intelligence
-            # ---------------------------------------------------
+            # -------------------------------
+            # Passed
+            # -------------------------------
 
             if (
                 result.passed
@@ -246,14 +282,21 @@ class IngestionService:
 
                 summary.posts_passed += 1
 
-                await self._run_store.append_intelligence(
-                    summary.run_id,
-                    result.intelligence,
+                validated_records.append(
+                    result.intelligence
                 )
 
-            # ---------------------------------------------------
+                await (
+                    self._run_store
+                    .append_intelligence(
+                        summary.run_id,
+                        result.intelligence,
+                    )
+                )
+
+            # -------------------------------
             # Rejected
-            # ---------------------------------------------------
+            # -------------------------------
 
             else:
 
@@ -264,9 +307,19 @@ class IngestionService:
                     result.rejects,
                 )
 
-        # ---------------------------------------------------
-        # Finalize summary
-        # ---------------------------------------------------
+        logger.info(
+            "Stage 1 complete",
+            extra={
+                "validated_records":
+                    len(
+                        validated_records
+                    )
+            },
+        )
+
+        # -----------------------------------
+        # Update summary
+        # -----------------------------------
 
         summary.rejects_by_stage = (
             rejects_by_stage
@@ -276,89 +329,156 @@ class IngestionService:
             IngestionRunStatus.COMPLETED
         )
 
-        summary.finished_at = datetime.now(
-            timezone.utc
+        summary.finished_at = (
+            datetime.now(
+                timezone.utc
+            )
         )
 
         await self._run_store.update_run(
             summary
         )
 
-        logger.info(
-            "Ingestion completed",
-            extra={
-                "run_id": str(summary.run_id),
-                "fetched": summary.posts_fetched,
-                "passed": summary.posts_passed,
-                "rejected": summary.posts_rejected,
-            },
-        )
+        # -----------------------------------
+        # STAGE 2
+        # -----------------------------------
 
-        # ---------------------------------------------------
-        # Run aggregation pipeline
-        # ---------------------------------------------------
-
-        if summary.posts_passed > 0:
+        if validated_records:
 
             logger.info(
-                "Starting aggregation pipeline",
+                "Starting Stage 2: "
+                "embedding + persistence",
                 extra={
                     "records":
-                    summary.posts_passed
+                        len(
+                            validated_records
+                        )
                 },
             )
 
-            aggregation_orchestrator = (
-                AggregationOrchestrator()
+            embedding_service = (
+                EmbeddingService()
             )
 
-            aggregation_result = (
-                await aggregation_orchestrator.run(
-                    db_session
+            repository = (
+                CanonicalIntelligenceRepository(
+                    embedding_service=
+                        embedding_service
                 )
             )
 
-            logger.info(
-                "Aggregation completed",
-                extra=aggregation_result,
-            )
+            async with (
+                AsyncSessionLocal()
+                as db_session
+            ):
+
+                try:
+
+                    for record in (
+                        validated_records
+                    ):
+
+                        await (
+                            repository
+                            .store_record(
+                                db=db_session,
+                                record=record,
+                            )
+                        )
+
+                    await repository.commit(
+                        db_session
+                    )
+
+                    logger.info(
+                        "Stage 2 complete"
+                    )
+
+                    # -----------------------
+                    # STAGE 3
+                    # -----------------------
+
+                    logger.info(
+                        "Starting Stage 3: "
+                        "clustering + aggregation"
+                    )
+
+                    aggregation_orchestrator = (
+                        AggregationOrchestrator()
+                    )
+
+                    aggregation_result = (
+                        await (
+                            aggregation_orchestrator
+                            .run(
+                                db_session
+                            )
+                        )
+                    )
+
+                    logger.info(
+                        "Stage 3 complete",
+                        extra=
+                            aggregation_result,
+                    )
+
+                except Exception:
+
+                    await repository.rollback(
+                        db_session
+                    )
+
+                    logger.exception(
+                        "Persistence or "
+                        "aggregation failed"
+                    )
+
+                    raise
 
         else:
 
             logger.info(
-                "No records passed; "
-                "skipping aggregation"
+                "No validated records "
+                "found; skipping "
+                "persistence + aggregation"
             )
 
-        # ---------------------------------------------------
-        # FINAL SINGLE COMMIT
-        # ---------------------------------------------------
-
         logger.info(
-            "Committing full ingestion batch"
-        )
-
-        await db_session.commit()
-
-        logger.info(
-            "Transaction committed successfully"
+            "Ingestion completed",
+            extra={
+                "run_id":
+                    str(summary.run_id),
+                "fetched":
+                    summary.posts_fetched,
+                "passed":
+                    summary.posts_passed,
+                "rejected":
+                    summary.posts_rejected,
+            },
         )
 
         return summary
 
     def _tally_rejects(
         self,
-        rejects_by_stage: dict[str, int],
-        rejects: list[PipelineRejectRecord],
+        rejects_by_stage:
+            dict[str, int],
+        rejects:
+            list[
+                PipelineRejectRecord
+            ],
     ) -> None:
-        """Increment per-stage reject counters."""
+        """Increment reject counters."""
 
         for reject in rejects:
 
             key = reject.stage.value
 
             rejects_by_stage[key] = (
-                rejects_by_stage.get(key, 0)
+                rejects_by_stage.get(
+                    key,
+                    0,
+                )
                 + 1
             )
 
@@ -366,19 +486,31 @@ class IngestionService:
         self,
         summary: IngestionRunSummary,
     ) -> IngestionResponse:
-        """Map internal summary to API response."""
+        """Map summary to API response."""
 
         return IngestionResponse(
             run_id=summary.run_id,
             status=summary.status,
             sources=summary.sources,
-            posts_fetched=summary.posts_fetched,
-            posts_passed=summary.posts_passed,
-            posts_rejected=summary.posts_rejected,
+            posts_fetched=(
+                summary.posts_fetched
+            ),
+            posts_passed=(
+                summary.posts_passed
+            ),
+            posts_rejected=(
+                summary.posts_rejected
+            ),
             rejects_by_stage=(
                 summary.rejects_by_stage
             ),
-            started_at=summary.started_at,
-            finished_at=summary.finished_at,
-            error_message=summary.error_message,
+            started_at=(
+                summary.started_at
+            ),
+            finished_at=(
+                summary.finished_at
+            ),
+            error_message=(
+                summary.error_message
+            ),
         )
