@@ -10,11 +10,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install uv — copy binary from official image (no pip required)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
-# Copy dependency files first (better layer caching)
-COPY pyproject.toml uv.lock* ./
+# Tell uv to use the system Python, not create a venv
+# This is the correct way to prevent venv creation inside containers
+ENV UV_SYSTEM_PYTHON=1
 
-# Install dependencies into the system Python (no venv needed in containers)
-RUN uv sync --no-dev --frozen --system
+# Copy dependency files first (better layer caching)
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies (frozen = use exact versions from uv.lock)
+RUN uv sync --no-dev --frozen
 
 # Copy application code
 COPY . .
@@ -25,5 +29,5 @@ RUN mkdir -p /var/log/opp-intel
 # Expose port
 EXPOSE 8000
 
-# Run with uvicorn
-CMD ["sh", "-c", "uv run --system uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2"]
+# Run with uvicorn — uses $PORT from Render, fallback 8000 for local
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2"]
