@@ -1,171 +1,136 @@
 import { useState } from 'react';
-import { AnalyzeForm } from '../components/dashboard/AnalyzeForm';
-import { AnalysisResult } from '../components/dashboard/AnalysisResult';
-import { CompanyList } from '../components/dashboard/CompanyList';
-import { SignalsPanel } from '../components/dashboard/SignalsPanel';
-import { GitIssuesSection } from '../components/dashboard/GitIssuesSection';
-import { FundingSection } from '../components/dashboard/FundingSection';
-import { HiringSection } from '../components/dashboard/HiringSection';
-import { SignalDetail } from '../components/shared/SignalDetail';
-import type { AnalyzeResponse, Company, Signal } from '../types';
+import { ArrowUpRight, Building2, LayoutDashboard, Menu, Search, Send, X } from 'lucide-react';
+import { CompanyProvider, useCompany } from '../context/CompanyContext';
+import { CompanyFilterBar } from '../components/shared/CompanyFilterBar';
+import { SignalDetailDrawer } from '../components/shared/SignalDetailDrawer';
+import type { DrawerSignal } from '../components/shared/SignalDetailDrawer';
+import { CommandCenter } from '../components/pages/CommandCenter';
+import { AccountsIntelligence } from '../components/pages/AccountsIntelligence';
+import { OpportunitiesPipeline } from '../components/pages/OpportunitiesPipeline';
+import { SignalsExplorer } from '../components/pages/SignalsExplorer';
+import { OutreachCenter } from '../components/pages/OutreachCenter';
+import type { Company } from '../types';
+
+type TabId = 'command_center' | 'accounts' | 'opportunities' | 'signals' | 'outreach';
+
+const NAV_ITEMS: { id: TabId; label: string; Icon: typeof LayoutDashboard }[] = [
+  { id: 'command_center', label: 'Command Center', Icon: LayoutDashboard },
+  { id: 'accounts', label: 'Accounts Intel', Icon: Building2 },
+  { id: 'opportunities', label: 'Opportunities', Icon: ArrowUpRight },
+  { id: 'signals', label: 'Signals Explorer', Icon: Search },
+  { id: 'outreach', label: 'Outreach & Action', Icon: Send },
+];
 
 export function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<'company' | 'ecosystem' | 'funding' | 'hiring'>('company');
-  const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResponse | null>(null);
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
-  const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
-  const [companyListKey, setCompanyListKey] = useState(0);
+  return (
+    <CompanyProvider>
+      <DashboardShell />
+    </CompanyProvider>
+  );
+}
 
-  const handleAnalyzeResult = (result: AnalyzeResponse) => {
-    setAnalyzeResult(result);
-    // Refresh the company list to show the newly analyzed company
-    setCompanyListKey((k) => k + 1);
-    setSelectedCompany(null);
+function DashboardShell() {
+  const { focusedCompany, setFocusedCompany } = useCompany();
+  const [activeTab, setActiveTab] = useState<TabId>('command_center');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [selectedSignal, setSelectedSignal] = useState<DrawerSignal | null>(null);
+
+  const handleNavigate = (tab: string, company?: Company) => {
+    setActiveTab(tab as TabId);
+    if (company) {
+      setSelectedCompany(company);
+      setFocusedCompany(company);
+    }
   };
 
+  const activeCompany = focusedCompany ?? selectedCompany;
+  const activeLabel = NAV_ITEMS.find(item => item.id === activeTab)?.label ?? 'Command Center';
+
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Top nav */}
-      <header className="border-b border-slate-800 px-6 py-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-display font-bold text-sm">
-              OI
+    <div className="min-h-screen flex bg-slate-950 text-slate-100 font-sans">
+      <aside className={`${sidebarOpen ? 'w-72' : 'w-20'} hidden md:flex flex-col border-r border-slate-800 bg-slate-900/70 backdrop-blur-md transition-all duration-200 shrink-0`}>
+        <div className="h-16 px-4 flex items-center gap-3 border-b border-slate-800">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-accent flex items-center justify-center text-white font-display font-bold text-base shadow-lg shadow-brand-500/20">OI</div>
+          {sidebarOpen && (
+            <div className="min-w-0">
+              <span className="font-display font-bold text-white tracking-tight text-lg block leading-none">Opportunity Intel</span>
+              <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase mt-0.5 block">Pipeline Orchestrator</span>
             </div>
-            <span className="font-display font-bold text-white tracking-tight text-lg">
-              Opportunity Intel
-            </span>
-          </div>
-          
-          {/* Navigation Tabs */}
-          <nav className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg p-1">
-            <button
-              onClick={() => setActiveTab('company')}
-              className={`px-4 py-1.5 rounded-md text-xs font-semibold font-mono transition-all duration-200 ${
-                activeTab === 'company'
-                  ? 'bg-brand-500 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              🏢 Company Targets
-            </button>
-            <button
-              onClick={() => setActiveTab('ecosystem')}
-              className={`px-4 py-1.5 rounded-md text-xs font-semibold font-mono transition-all duration-200 ${
-                activeTab === 'ecosystem'
-                  ? 'bg-brand-500 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              🔭 Ecosystem & Dev Pain
-            </button>
-            <button
-              onClick={() => setActiveTab('funding')}
-              className={`px-4 py-1.5 rounded-md text-xs font-semibold font-mono transition-all duration-200 ${
-                activeTab === 'funding'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              💵 Funding Intel
-            </button>
-            <button
-              onClick={() => setActiveTab('hiring')}
-              className={`px-4 py-1.5 rounded-md text-xs font-semibold font-mono transition-all duration-200 ${
-                activeTab === 'hiring'
-                  ? 'bg-brand-500 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              💼 Hiring Intel
-            </button>
-          </nav>
+          )}
         </div>
 
-        <span className="text-xs text-slate-500 font-mono hidden md:inline">
-          Careers · Blogs · Reddit · Git Issues · Hugging Face · Funding rounds · Google Jobs
-        </span>
-      </header>
+        <button onClick={() => setSidebarOpen(open => !open)} className="mx-4 mt-4 p-2 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-colors self-start" title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
+          {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+        </button>
 
-      <div className="flex flex-1 min-h-0">
-        {/* Sidebar - only show or enable for company tab */}
-        {activeTab === 'company' && (
-          <aside className="w-64 border-r border-slate-800 p-4 overflow-y-auto shrink-0 animate-fade-in">
-            <CompanyList
-              key={companyListKey}
-              onSelect={setSelectedCompany}
-              selectedName={selectedCompany?.name ?? null}
-            />
-          </aside>
-        )}
+        <nav className="p-4 space-y-2">
+          {NAV_ITEMS.map(({ id, label, Icon }) => (
+            <TabButton key={id} active={activeTab === id} label={label} Icon={Icon} expanded={sidebarOpen} onClick={() => handleNavigate(id)} />
+          ))}
+        </nav>
+      </aside>
 
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
-          {activeTab === 'company' ? (
-            <>
-              <AnalyzeForm onResult={handleAnalyzeResult} />
-
-              {analyzeResult && !selectedCompany && (
-                <AnalysisResult result={analyzeResult} onSelectSignal={setSelectedSignal} />
-              )}
-
-              {selectedCompany && (
-                <SignalsPanel companyName={selectedCompany.name} onSelectSignal={setSelectedSignal} />
-              )}
-
-              {!analyzeResult && !selectedCompany && (
-                <EmptyState />
-              )}
-            </>
-          ) : activeTab === 'ecosystem' ? (
-            <GitIssuesSection />
-          ) : activeTab === 'funding' ? (
-            <FundingSection />
-          ) : (
-            <HiringSection />
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="h-auto min-h-16 border-b border-slate-800 px-4 md:px-6 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between shrink-0 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(open => !open)} className="md:hidden p-2 rounded-lg border border-slate-800 text-slate-400 hover:text-white">
+              <Menu className="w-4 h-4" />
+            </button>
+            <div>
+              <span className="font-display font-bold text-white tracking-tight text-lg block leading-none">{activeLabel}</span>
+              <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase mt-0.5 block">Company-scoped intelligence</span>
+            </div>
+          </div>
+          <CompanyFilterBar />
+          {sidebarOpen && (
+            <nav className="md:hidden grid grid-cols-1 gap-2 pt-2 border-t border-slate-800">
+              {NAV_ITEMS.map(({ id, label, Icon }) => (
+                <TabButton key={id} active={activeTab === id} label={label} Icon={Icon} expanded onClick={() => handleNavigate(id)} />
+              ))}
+            </nav>
           )}
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-6 md:p-8 max-w-7xl w-full mx-auto">
+          {activeTab === 'command_center' && <CommandCenter onNavigate={handleNavigate} />}
+          {activeTab === 'accounts' && (
+            <AccountsIntelligence
+              selectedCompany={activeCompany}
+              onSelectCompany={setSelectedCompany}
+              onSelectSignal={setSelectedSignal}
+            />
+          )}
+          {activeTab === 'opportunities' && <OpportunitiesPipeline onSelectSignal={setSelectedSignal} />}
+          {activeTab === 'signals' && <SignalsExplorer onSelectSignal={setSelectedSignal} />}
+          {activeTab === 'outreach' && <OutreachCenter />}
         </main>
       </div>
 
-      {selectedSignal && (
-        <SignalDetail
-          signal={selectedSignal}
-          onClose={() => setSelectedSignal(null)}
-        />
-      )}
+      <SignalDetailDrawer signal={selectedSignal} onClose={() => setSelectedSignal(null)} />
     </div>
   );
 }
 
-function EmptyState() {
+interface TabButtonProps {
+  active: boolean;
+  label: string;
+  Icon: typeof LayoutDashboard;
+  expanded: boolean;
+  onClick: () => void;
+}
+
+function TabButton({ active, label, Icon, expanded, onClick }: TabButtonProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-up">
-      <div className="w-16 h-16 rounded-2xl bg-surface-50 border border-slate-700 flex items-center justify-center mb-5">
-        <span className="text-2xl">🔭</span>
-      </div>
-      <h3 className="font-display text-xl font-bold text-white mb-2">
-        Start Discovering Opportunities
-      </h3>
-      <p className="text-sm text-slate-400 max-w-sm">
-        Enter a product-based company name above to extract intelligence signals
-        from their career pages and engineering blogs.
-      </p>
-      <div className="mt-6 grid grid-cols-2 gap-3 text-left max-w-sm w-full">
-        {[
-          { label: 'ATS Detection', desc: 'Greenhouse, Lever, Ashby, Workday' },
-          { label: 'Blog Parsing', desc: 'RSS feeds + Firecrawl extraction' },
-          { label: 'Market Pain', desc: 'Reddit workflow pain intelligence' },
-          { label: 'Pain Mapping', desc: 'Infra, DevOps, AI, Security signals' },
-          { label: 'Capability Fit', desc: 'Organizational practice matching' },
-          { label: 'AI Inference', desc: 'LLM-powered opportunity scoring' },
-        ].map((item) => (
-          <div key={item.label} className="bg-surface-50 border border-slate-800 rounded-lg p-3">
-            <p className="text-xs font-semibold text-brand-400 font-mono">{item.label}</p>
-            <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
-          </div>
-        ))}
-      </div>
-    </div>
+    <button
+      onClick={onClick}
+      className={`w-full px-3 py-2.5 rounded-lg text-xs font-semibold font-mono flex items-center gap-3 transition-all duration-200 ${
+        active ? 'bg-brand-500 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+      }`}
+      title={expanded ? undefined : label}
+    >
+      <Icon className="w-4 h-4 shrink-0" />
+      {expanded && <span className="truncate">{label}</span>}
+    </button>
   );
 }
-

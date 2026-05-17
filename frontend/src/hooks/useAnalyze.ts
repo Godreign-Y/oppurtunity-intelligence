@@ -4,33 +4,28 @@
  */
 
 import { useState, useCallback } from 'react';
-import type { AnalyzeResponse } from '../types';
-import { analyzeCompany } from '../api/client';
+import type { PipelineRun } from '../types';
+import { startAnalyzeCompany } from '../api/client';
 
 interface UseAnalyzeReturn {
-  result: AnalyzeResponse | null;
+  result: PipelineRun | null;
   loading: boolean;
   error: string | null;
-  analyze: (companyName: string) => Promise<void>;
+  analyze: (companyName: string, pipelines: string[]) => Promise<void>;
   reset: () => void;
 }
 
-/**
- * Manages state for the company analysis pipeline trigger.
- *
- * @returns State and handlers for analysis lifecycle.
- */
 export function useAnalyze(): UseAnalyzeReturn {
-  const [result, setResult] = useState<AnalyzeResponse | null>(null);
+  const [result, setResult] = useState<PipelineRun | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const analyze = useCallback(async (companyName: string) => {
+  const analyze = useCallback(async (companyName: string, pipelines: string[]) => {
     setLoading(true);
     setError(null);
     setResult(null);
     try {
-      const data = await analyzeCompany(companyName);
+      const data = await startAnalyzeCompany(companyName, pipelines);
       setResult(data);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Analysis failed';

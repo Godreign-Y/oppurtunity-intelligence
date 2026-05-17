@@ -49,3 +49,15 @@ body {
   50%       { box-shadow: 0 0 0 8px rgba(14,165,233,0); }
 }
 .pulse-glow { animation: pulse-glow 2s ease infinite; }
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.animate-slide-in-right { animation: slideInRight 0.25s cubic-bezier(0.16,1,0.3,1) both; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in { animation: fadeIn 0.3s ease both; }

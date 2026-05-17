@@ -4,6 +4,7 @@
  */
 
 import type { Signal } from '../../types';
+import type { DrawerSignal } from './SignalDetailDrawer';
 
 const SOURCE_STYLES: Record<string, string> = {
   career_page: 'bg-purple-500/20 text-purple-300',
@@ -12,7 +13,7 @@ const SOURCE_STYLES: Record<string, string> = {
 
 interface Props {
   signal: Signal;
-  onClick?: (signal: Signal) => void;
+  onClick?: (signal: DrawerSignal) => void;
   compact?: boolean;
 }
 
@@ -31,7 +32,7 @@ export function SignalCard({ signal, onClick }: Props) {
   const confidencePct = Math.round(signal.confidence * 100);
 
   return (
-    <button
+    <div
       onClick={() => onClick?.(signal)}
       className={`w-full text-left bg-surface-50 border border-slate-700 rounded-xl p-5 space-y-3 hover:border-brand-500/50 hover:bg-surface-100 transition-all active:scale-[0.98] ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
     >
@@ -51,10 +52,10 @@ export function SignalCard({ signal, onClick }: Props) {
               <p className="text-xs text-slate-400 font-mono">{signal.event_type.replace(/_/g, ' ')}</p>
             )}
             {signal.location && (
-              <p className="text-xs text-slate-500 font-mono">· {signal.location}</p>
+              <p className="text-xs text-slate-500 font-mono"> {signal.location}</p>
             )}
             {signal.timestamp && (
-              <p className="text-xs text-brand-400/80 font-mono italic">· {getRelativeTime(signal.timestamp)}</p>
+              <p className="text-xs text-brand-400/80 font-mono italic"> {getRelativeTime(signal.timestamp)}</p>
             )}
           </div>
         </div>
@@ -88,6 +89,12 @@ export function SignalCard({ signal, onClick }: Props) {
         </div>
       )}
 
+      {signal.opportunity_category && (
+        <div className="inline-flex px-2 py-0.5 bg-accent/10 text-accent text-xs rounded font-mono">
+          {signal.opportunity_category}
+        </div>
+      )}
+
       {/* Opportunity mapping */}
       {signal.opportunity_mapping.length > 0 && (
         <div>
@@ -102,11 +109,12 @@ export function SignalCard({ signal, onClick }: Props) {
           href={signal.source_url}
           target="_blank"
           rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
           className="block text-xs text-slate-500 hover:text-brand-400 font-mono truncate transition-colors"
         >
           {signal.source_url}
         </a>
       )}
-    </button>
+    </div>
   );
 }

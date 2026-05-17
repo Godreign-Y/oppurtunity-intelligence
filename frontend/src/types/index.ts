@@ -23,6 +23,7 @@ export interface Signal {
   pain_indicators: string[];
   business_implications: string[];
   opportunity_mapping: string[];
+  opportunity_category: string | null;
   confidence: number;
   evidence: string[];
   source_url: string | null;
@@ -54,9 +55,15 @@ export interface AnalyzeResponse {
   career_signals_count: number;
   blog_signals_count: number;
   market_pain_count: number;
+  git_issues_count?: number;
+  funding_count?: number;
+  hiring_count?: number;
   total_signals: number;
   signals: Signal[];
   market_pain_signals: MarketPainSignal[];
+  git_signals?: any[];
+  funding_signals?: any[];
+  hiring_signals?: any[];
   ai_analysis: AIAnalysis | null;
 }
 
@@ -73,6 +80,7 @@ export interface MarketPainSignal {
   company: string | null;
   technologies: string[];
   pain_category: string;
+  opportunity_category: string | null;
   pain_subcategories: string[];
   workflow_pains: string[];
   severity: string;
@@ -97,6 +105,7 @@ export interface GitHubIssueSignal {
   comments: number | null;
   labels: string[];
   query: string | null;
+  opportunity_category?: string | null;
 }
 
 export interface GitNormalizedSignal {
@@ -110,6 +119,7 @@ export interface GitNormalizedSignal {
   org: string | null;
   repo: string | null;
   created_at: string | null;
+  opportunity_category?: string | null;
 }
 
 export interface MetricCount {
@@ -135,6 +145,7 @@ export interface FundingEvent {
   source_url: string | null;
   raw_text: string | null;
   opportunity_score: number;
+  opportunity_category?: string | null;
 }
 
 export interface FundingInsights {
@@ -153,6 +164,8 @@ export interface HiringSignal {
   posted_date: string | null;
   sanitized_description: string;
   detected_tech_stack: string[];
+  source_url?: string | null;
+  opportunity_category?: string | null;
   created_at: string;
 }
 
@@ -160,5 +173,79 @@ export interface HiringInsights {
   total_jobs: number;
   top_skills: { tech: string; count: number }[];
   top_hiring: { company_name: string; count: number }[];
+}
+
+export interface PipelineRun {
+  id: string;
+  company_name: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  pipelines_selected: string[];
+  results: AnalyzeResponse | null;
+  errors: Record<string, string> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RelantoPractice {
+  practice_name: string;
+  practice_code: string;
+  practice_category: string | null;
+  description: string | null;
+  relevance_score?: number;
+  delivery_strength: number | null;
+  sme_count: number | null;
+  growth_priority: boolean;
+}
+
+export interface RelantoPastDeal {
+  client_name: string | null;
+  project_name: string | null;
+  technologies_used: string[];
+  transformation_outcome: string | null;
+  client_satisfaction_score: number | null;
+}
+
+export interface RelantoOpportunity {
+  id: string;
+  company_name: string;
+  source: string;
+  title: string;
+  body: string | null;
+  source_url: string | null;
+  opportunity_category: string;
+  confidence: number;
+  technologies: string[];
+  pain_indicators: string[];
+  score: number;
+  priority: 'High' | 'Medium' | 'Low';
+  relanto_relevance_score: number;
+  practices: RelantoPractice[];
+  past_deals: RelantoPastDeal[];
+  reason: string;
+}
+
+export interface DecisionMaker {
+  first_name: string | null;
+  last_name: string | null;
+  title: string | null;
+  email: string | null;
+  linkedin_url: string | null;
+  confidence: number | null;
+  source: string;
+}
+
+export interface OutreachRecommendation {
+  opportunity_id: string;
+  company_name: string;
+  opportunity: string;
+  source: string;
+  score: number;
+  relanto_relevance_score: number;
+  priority: 'High' | 'Medium' | 'Low';
+  practices: RelantoPractice[];
+  suggested_personas: string[];
+  decision_makers: DecisionMaker[];
+  source_url: string | null;
+  angle: string;
 }
 

@@ -129,7 +129,7 @@ export function GitIssuesSection() {
               className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-brand-500/20 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
             >
               {isIngestingGit && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-              🚀 Run Core Pipelines
+               Run Core Pipelines
             </button>
             <button
               onClick={handleIngestHF}
@@ -137,7 +137,7 @@ export function GitIssuesSection() {
               className="px-4 py-2.5 rounded-lg bg-surface-50 border border-slate-700 hover:border-slate-500 text-white font-medium text-sm transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
             >
               {isIngestingHF && <div className="w-4 h-4 border-2 border-slate-500/30 border-t-slate-400 rounded-full animate-spin" />}
-              🤗 Ingest Hugging Face
+               Ingest Hugging Face
             </button>
           </div>
         </div>
@@ -157,18 +157,18 @@ export function GitIssuesSection() {
             disabled={isIngestingGit || !customQuery}
             className="px-4 py-2.5 bg-slate-100 hover:bg-white text-slate-950 font-semibold text-sm rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
           >
-            🔍 Ingest Custom Query
+             Ingest Custom Query
           </button>
         </form>
 
         {error && (
           <div className="mt-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-400 text-xs font-mono">
-            ⚠️ {error}
+             {error}
           </div>
         )}
         {successMsg && (
           <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 text-xs font-mono">
-            ✅ {successMsg}
+             {successMsg}
           </div>
         )}
       </div>
@@ -178,7 +178,7 @@ export function GitIssuesSection() {
           {/* Executive Metrics Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-surface-50 border border-slate-800 rounded-xl p-5 relative overflow-hidden">
-              <span className="text-3xl mb-2 block">🤝</span>
+              <span className="text-3xl mb-2 block"></span>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-mono">
                 Direct Consulting Leads
               </p>
@@ -191,7 +191,7 @@ export function GitIssuesSection() {
             </div>
 
             <div className="bg-surface-50 border border-slate-800 rounded-xl p-5">
-              <span className="text-3xl mb-2 block">⚡</span>
+              <span className="text-3xl mb-2 block"></span>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-mono">
                 Ecosystem Health
               </p>
@@ -204,20 +204,20 @@ export function GitIssuesSection() {
             </div>
 
             <div className="bg-surface-50 border border-slate-800 rounded-xl p-5">
-              <span className="text-3xl mb-2 block">🎯</span>
+              <span className="text-3xl mb-2 block"></span>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-mono">
-                Signal Resolution Confidence
+                Normalized Signals
               </p>
               <h4 className="text-2xl font-bold text-brand-400 mt-1">
-                87.5%
+                {normalizedSignals.length}
               </h4>
               <p className="text-xs text-slate-400 mt-2">
-                Confidence rating based on automated keyword & normalization rules.
+                Structured records produced by the normalization pipeline.
               </p>
             </div>
 
             <div className="bg-surface-50 border border-slate-800 rounded-xl p-5">
-              <span className="text-3xl mb-2 block">🔥</span>
+              <span className="text-3xl mb-2 block"></span>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-mono">
                 High Severity Crashes
               </p>
@@ -280,7 +280,7 @@ export function GitIssuesSection() {
                 </div>
               ) : (
                 <div className="text-center py-10">
-                  <span className="text-2xl">🌱</span>
+                  <span className="text-2xl"></span>
                   <p className="text-sm text-slate-400 mt-2">No high-severity target accounts registered yet.</p>
                   <p className="text-xs text-slate-500 mt-1">Run core pipelines above to trigger automated discovery.</p>
                 </div>
@@ -408,7 +408,7 @@ export function GitIssuesSection() {
                   </h4>
                   <div className="flex items-center gap-2 text-xs text-slate-500 mb-4 font-mono">
                     <span>Org: <strong className="text-slate-400">{sig.org || 'Unknown'}</strong></span>
-                    <span>•</span>
+                    <span></span>
                     <span>Repo: <strong className="text-slate-400">{sig.repo || 'N/A'}</strong></span>
                   </div>
                 </div>
@@ -425,7 +425,7 @@ export function GitIssuesSection() {
                       rel="noopener noreferrer"
                       className="text-xs font-semibold text-brand-400 hover:text-brand-300 flex items-center gap-1 transition-colors"
                     >
-                      View Source 🔗
+                      View Source 
                     </a>
                   )}
                 </div>
@@ -434,7 +434,7 @@ export function GitIssuesSection() {
           </div>
         ) : (
           <div className="text-center py-16">
-            <span className="text-3xl mb-3 block">🔭</span>
+            <span className="text-3xl mb-3 block"></span>
             <h4 className="font-semibold text-slate-300 text-base">No normalized signals available yet.</h4>
             <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
               Please click "Run Core Pipelines" above to ingest issues and generate intelligence indicators automatically.

@@ -87,7 +87,7 @@ export function HiringSection() {
               Recruiting Signals & Tech Stack Crawler
             </div>
             <h2 className="text-2xl md:text-3xl font-display font-bold text-white tracking-tight">
-              💼 Hiring Intel & Skills Mapping
+               Hiring Intel & Skills Mapping
             </h2>
             <p className="text-sm text-slate-400 mt-2 leading-relaxed">
               Track open technical vacancies at product-based companies. Analyze job roles (DevOps, Cloud, Monolith modernizations) to discover capability gaps and system migration needs.
@@ -101,19 +101,19 @@ export function HiringSection() {
               className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-brand-500/20 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
             >
               {isIngesting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-              🚀 Ingest Job Openings
+               Ingest Job Openings
             </button>
           </div>
         </div>
 
         {error && (
           <div className="mt-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-400 text-xs font-mono">
-            ⚠️ {error}
+             {error}
           </div>
         )}
         {successMsg && (
           <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 text-xs font-mono">
-            ✅ {successMsg}
+             {successMsg}
           </div>
         )}
       </div>
@@ -123,7 +123,7 @@ export function HiringSection() {
           {/* Metrics Panel */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-surface-50 border border-slate-800 rounded-xl p-5 relative overflow-hidden">
-              <span className="text-3xl mb-2 block">🏢</span>
+              <span className="text-3xl mb-2 block"></span>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-mono">
                 Active Tech Openings
               </p>
@@ -136,7 +136,7 @@ export function HiringSection() {
             </div>
 
             <div className="bg-surface-50 border border-slate-800 rounded-xl p-5">
-              <span className="text-3xl mb-2 block">⚙️</span>
+              <span className="text-3xl mb-2 block"></span>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-mono">
                 Top Hiring Skill
               </p>
@@ -149,7 +149,7 @@ export function HiringSection() {
             </div>
 
             <div className="bg-surface-50 border border-slate-800 rounded-xl p-5">
-              <span className="text-3xl mb-2 block">🎯</span>
+              <span className="text-3xl mb-2 block"></span>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-mono">
                 Target Accounts Ingested
               </p>
@@ -162,15 +162,15 @@ export function HiringSection() {
             </div>
 
             <div className="bg-surface-50 border border-slate-800 rounded-xl p-5">
-              <span className="text-3xl mb-2 block">💼</span>
+              <span className="text-3xl mb-2 block"></span>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-mono">
-                Consulting Potential
+                Hiring Feed Status
               </p>
               <h4 className="text-2xl font-bold text-brand-400 mt-1">
-                92.4%
+                {insights.total_jobs > 0 ? 'Active' : 'N/A'}
               </h4>
               <p className="text-xs text-slate-400 mt-2">
-                Direct capability fit match across organization practices.
+                Status based on currently ingested technical job signals.
               </p>
             </div>
           </div>
@@ -225,7 +225,7 @@ export function HiringSection() {
                 </div>
               ) : (
                 <div className="text-center py-10">
-                  <span className="text-2xl">🌱</span>
+                  <span className="text-2xl"></span>
                   <p className="text-sm text-slate-400 mt-2">No hiring target accounts registered yet.</p>
                 </div>
               )}
@@ -335,7 +335,7 @@ export function HiringSection() {
           </div>
         ) : (
           <div className="text-center py-16">
-            <span className="text-3xl mb-3 block">💼</span>
+            <span className="text-3xl mb-3 block"></span>
             <h4 className="font-semibold text-slate-300 text-base">No active job listings available.</h4>
             <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
               Please click "Ingest Job Openings" above to scrape and sanitize Google Jobs data for technical modernizations.

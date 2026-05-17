@@ -6,11 +6,12 @@
 import { TrendingUp, Users, Globe, Brain, CheckCircle, AlertTriangle } from 'lucide-react';
 import { SignalCard } from '../shared/SignalCard';
 import { MarketPainSection } from './MarketPainSection';
-import type { AnalyzeResponse, Signal } from '../../types';
+import type { AnalyzeResponse } from '../../types';
+import type { DrawerSignal } from '../shared/SignalDetailDrawer';
 
 interface Props {
   result: AnalyzeResponse;
-  onSelectSignal?: (signal: Signal) => void;
+  onSelectSignal?: (signal: DrawerSignal) => void;
 }
 
 function ConfidenceBadge({ score }: { score: number }) {
@@ -32,7 +33,7 @@ export function AnalysisResult({ result, onSelectSignal }: Props) {
         <StatCard icon={<Users className="w-5 h-5 text-purple-400" />} label="Career Signals" value={result.career_signals_count} />
         <StatCard icon={<Globe className="w-5 h-5 text-green-400" />} label="Blog Signals" value={result.blog_signals_count} />
         <StatCard icon={<AlertTriangle className="w-5 h-5 text-red-400" />} label="Market Pain" value={result.market_pain_count ?? 0} />
-        <StatCard icon={<Brain className="w-5 h-5 text-accent" />} label="ATS Platform" value={result.ats_platform ?? '—'} />
+        <StatCard icon={<Brain className="w-5 h-5 text-accent" />} label="ATS Platform" value={result.ats_platform ?? ''} />
       </div>
 
       {/* AI Analysis Card */}
@@ -69,7 +70,7 @@ export function AnalysisResult({ result, onSelectSignal }: Props) {
                 Recommended Outreach
               </p>
               <p className="text-sm font-semibold text-accent">
-                → {ai.recommended_outreach.stakeholder}
+                 {ai.recommended_outreach.stakeholder}
               </p>
               <p className="text-sm text-slate-300 mt-1">{ai.recommended_outreach.angle}</p>
             </div>
@@ -83,13 +84,13 @@ export function AnalysisResult({ result, onSelectSignal }: Props) {
           {result.ats_url && (
             <a href={result.ats_url} target="_blank" rel="noreferrer"
               className="text-xs font-mono text-brand-400 hover:underline truncate max-w-xs">
-              🏢 {result.ats_url}
+               {result.ats_url}
             </a>
           )}
           {result.blog_url && (
             <a href={result.blog_url} target="_blank" rel="noreferrer"
               className="text-xs font-mono text-green-400 hover:underline truncate max-w-xs">
-              📝 {result.blog_url}
+               {result.blog_url}
             </a>
           )}
         </div>
@@ -114,7 +115,72 @@ export function AnalysisResult({ result, onSelectSignal }: Props) {
 
       {/* Market Pain Intelligence Section */}
       {result.market_pain_signals && result.market_pain_signals.length > 0 && (
-        <MarketPainSection signals={result.market_pain_signals} />
+        <MarketPainSection signals={result.market_pain_signals} onSelectSignal={onSelectSignal} />
+      )}
+
+      {/* Git Issues Section */}
+      {result.git_signals && result.git_signals.length > 0 && (
+        <div className="space-y-4 bg-surface-50 border border-slate-700 rounded-xl p-6">
+          <h4 className="text-sm font-semibold text-slate-300">Git Issues</h4>
+          <div className="space-y-2">
+            {result.git_signals.map((sig, idx) => (
+              <button
+                key={idx}
+                onClick={() => onSelectSignal?.({ ...sig, source: 'github_issues', source_url: sig.source_url, body: sig.content })}
+                className="w-full text-left p-3 bg-slate-800 rounded border border-slate-700 hover:border-brand-500/50 transition-colors"
+              >
+                <p className="text-sm font-semibold text-white">{sig.title}</p>
+                <div className="flex gap-2 mt-1">
+                  {sig.opportunity_category && (
+                    <span className="text-xs px-2 py-0.5 rounded bg-accent/10 text-accent">{sig.opportunity_category}</span>
+                  )}
+                  <span className="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-300">{sig.repo}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Funding Section */}
+      {result.funding_signals && result.funding_signals.length > 0 && (
+        <div className="space-y-4 bg-surface-50 border border-slate-700 rounded-xl p-6">
+          <h4 className="text-sm font-semibold text-slate-300">Funding Intel</h4>
+          <div className="space-y-2">
+            {result.funding_signals.map((sig, idx) => (
+              <button
+                key={idx}
+                onClick={() => onSelectSignal?.({ ...sig, title: `${sig.company_name ?? result.company_name} ${sig.stage ?? 'Funding'}`, source: 'funding', source_url: sig.source_url, raw_text: sig.raw_text })}
+                className="w-full text-left p-3 bg-slate-800 rounded border border-emerald-900/50 flex justify-between hover:border-brand-500/50 transition-colors"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-white">{sig.stage} Round</p>
+                  <p className="text-xs text-slate-400">{sig.opportunity_category ?? sig.date}</p>
+                </div>
+                <p className="text-emerald-400 font-mono">${sig.amount ?? 'N/A'}M</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Hiring Section */}
+      {result.hiring_signals && result.hiring_signals.length > 0 && (
+        <div className="space-y-4 bg-surface-50 border border-slate-700 rounded-xl p-6">
+          <h4 className="text-sm font-semibold text-slate-300">Global Hiring Intel</h4>
+          <div className="space-y-2">
+            {result.hiring_signals.map((sig, idx) => (
+              <button
+                key={idx}
+                onClick={() => onSelectSignal?.({ ...sig, title: sig.job_title, source: 'hiring_signals', source_url: sig.source_url, body: sig.sanitized_description, technologies: sig.detected_tech_stack })}
+                className="w-full text-left p-3 bg-slate-800 rounded border border-slate-700 hover:border-brand-500/50 transition-colors"
+              >
+                <p className="text-sm font-semibold text-white">{sig.job_title}</p>
+                <p className="text-xs text-brand-400 mt-1">{sig.detected_tech_stack?.join(', ')}</p>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

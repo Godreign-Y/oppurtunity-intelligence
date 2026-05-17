@@ -5,12 +5,14 @@
 
 import type { MarketPainSignal } from '../../types';
 import { MarketPainCard } from './MarketPainCard';
+import type { DrawerSignal } from '../shared/SignalDetailDrawer';
 
 interface Props {
   signals: MarketPainSignal[];
+  onSelectSignal?: (signal: DrawerSignal) => void;
 }
 
-export function MarketPainSection({ signals }: Props) {
+export function MarketPainSection({ signals, onSelectSignal }: Props) {
   if (!signals || signals.length === 0) {
     return null;
   }
@@ -125,7 +127,7 @@ export function MarketPainSection({ signals }: Props) {
       {/* Signal cards */}
       <div className="grid gap-3 sm:grid-cols-2">
         {signals.map((signal) => (
-          <MarketPainCard key={signal.id} signal={signal} />
+          <MarketPainCard key={signal.id} signal={signal} onClick={onSelectSignal} />
         ))}
       </div>
     </div>

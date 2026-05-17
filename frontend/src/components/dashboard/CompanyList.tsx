@@ -24,7 +24,7 @@ export function CompanyList({ onSelect, selectedName }: Props) {
   }, []);
 
   if (loading) {
-    return <p className="text-sm text-slate-500 p-4">Loading companies…</p>;
+    return <p className="text-sm text-slate-500 p-4">Loading companies</p>;
   }
 
   if (companies.length === 0) {

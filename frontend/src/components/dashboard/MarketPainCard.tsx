@@ -4,6 +4,7 @@
  */
 
 import type { MarketPainSignal } from '../../types';
+import type { DrawerSignal } from '../shared/SignalDetailDrawer';
 
 const SEVERITY_STYLES: Record<string, string> = {
   critical: 'bg-red-500/20 text-red-300 border-red-500/30',
@@ -21,9 +22,10 @@ const SEVERITY_DOT: Record<string, string> = {
 
 interface Props {
   signal: MarketPainSignal;
+  onClick?: (signal: DrawerSignal) => void;
 }
 
-export function MarketPainCard({ signal }: Props) {
+export function MarketPainCard({ signal, onClick }: Props) {
   const severityStyle = SEVERITY_STYLES[signal.severity] ?? SEVERITY_STYLES.low;
   const dotColor = SEVERITY_DOT[signal.severity] ?? SEVERITY_DOT.low;
   const confidencePct = Math.round(signal.confidence * 100);
@@ -31,7 +33,8 @@ export function MarketPainCard({ signal }: Props) {
 
   return (
     <div
-      className={`bg-surface-50 border rounded-xl p-5 space-y-3 hover:border-brand-500/40 transition-all ${severityStyle}`}
+      onClick={() => onClick?.({ ...signal, source_url: signal.url, company_name: signal.company })}
+      className={`w-full text-left bg-surface-50 border rounded-xl p-5 space-y-3 hover:border-brand-500/40 transition-all ${onClick ? 'cursor-pointer' : 'cursor-default'} ${severityStyle}`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
@@ -47,14 +50,14 @@ export function MarketPainCard({ signal }: Props) {
               <span className="text-slate-400 font-semibold">
                 {signal.source === 'reddit' ? 'Reddit' : signal.source === 'hackernews' ? 'HackerNews' : signal.source === 'f5bot' ? 'F5Bot' : signal.source}
               </span>
-              <span className="text-slate-600">·</span>
+              <span className="text-slate-600"></span>
               {signal.source === 'reddit' ? `r/${signal.subreddit}` : signal.subreddit}
             </span>
-            <span className="text-slate-600">·</span>
-            <span className="text-slate-500">▲ {signal.upvotes}</span>
+            <span className="text-slate-600"></span>
+            <span className="text-slate-500"> {signal.upvotes}</span>
             {signal.product && (
               <>
-                <span className="text-slate-600">·</span>
+                <span className="text-slate-600"></span>
                 <span className="text-brand-400 font-mono">{signal.product}</span>
               </>
             )}
@@ -74,6 +77,15 @@ export function MarketPainCard({ signal }: Props) {
           <span className="text-xs text-slate-500">Pain:</span>
           <span className="px-2 py-0.5 bg-red-500/10 text-red-400 text-xs rounded font-mono">
             {signal.pain_category.replace(/_/g, ' ')}
+          </span>
+        </div>
+      )}
+
+      {signal.opportunity_category && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-500">Opportunity:</span>
+          <span className="px-2 py-0.5 bg-accent/10 text-accent text-xs rounded font-mono">
+            {signal.opportunity_category}
           </span>
         </div>
       )}
@@ -123,6 +135,7 @@ export function MarketPainCard({ signal }: Props) {
           href={signal.url}
           target="_blank"
           rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
           className="block text-[10px] text-slate-500 hover:text-brand-400 font-mono truncate transition-colors"
         >
           {signal.url}

@@ -12,10 +12,11 @@ import { TechCloud } from '../shared/TechCloud';
 import { OpportunitySummary } from '../shared/OpportunitySummary';
 import { MarketPainSection } from './MarketPainSection';
 import { Loader2 } from 'lucide-react';
+import type { DrawerSignal } from '../shared/SignalDetailDrawer';
 
 interface Props {
   companyName: string;
-  onSelectSignal?: (signal: Signal) => void;
+  onSelectSignal?: (signal: DrawerSignal) => void;
 }
 
 export function SignalsPanel({ companyName, onSelectSignal }: Props) {
@@ -28,8 +29,8 @@ export function SignalsPanel({ companyName, onSelectSignal }: Props) {
     setLoading(true);
     setError(null);
     Promise.all([
-      fetchSignals(companyName),
-      fetchMarketPainSignals(companyName).catch(() => []) // fail gracefully
+      fetchSignals(companyName).catch(() => []),
+      fetchMarketPainSignals(companyName).catch(() => [])
     ])
       .then(([sigData, mpData]) => {
         setSignals(sigData);
@@ -45,13 +46,13 @@ export function SignalsPanel({ companyName, onSelectSignal }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-slate-500">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading signals…
+        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading signals
       </div>
     );
   }
 
-  if (error) {
-    return <p className="text-sm text-slate-500 text-center py-12">{error}</p>;
+  if (error || (signals.length === 0 && marketPainSignals.length === 0)) {
+    return <p className="text-sm text-slate-500 text-center py-12">{error || 'No signals found for this company yet.'}</p>;
   }
 
   return (
@@ -101,7 +102,7 @@ export function SignalsPanel({ companyName, onSelectSignal }: Props) {
       {/* Market Pain signals */}
       {marketPainSignals.length > 0 && (
         <div className="mt-8">
-          <MarketPainSection signals={marketPainSignals} />
+          <MarketPainSection signals={marketPainSignals} onSelectSignal={onSelectSignal} />
         </div>
       )}
     </div>

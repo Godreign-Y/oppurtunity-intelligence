@@ -87,7 +87,7 @@ export function FundingSection() {
               Corporate Ingestion & Scoring Engine
             </div>
             <h2 className="text-2xl md:text-3xl font-display font-bold text-white tracking-tight">
-              💵 Funding round Analytics
+               Funding round Analytics
             </h2>
             <p className="text-sm text-slate-400 mt-2 leading-relaxed">
               Identify newly capitalized product companies raising Seed and Series rounds. Focus your high-ticket IT consulting outreach on companies experiencing rapid scaling pains.
@@ -101,19 +101,19 @@ export function FundingSection() {
               className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
             >
               {isIngesting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-              🚀 Ingest Funding rounds
+               Ingest Funding rounds
             </button>
           </div>
         </div>
 
         {error && (
           <div className="mt-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-400 text-xs font-mono">
-            ⚠️ {error}
+             {error}
           </div>
         )}
         {successMsg && (
           <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 text-xs font-mono">
-            ✅ {successMsg}
+             {successMsg}
           </div>
         )}
       </div>
@@ -123,7 +123,7 @@ export function FundingSection() {
           {/* Metrics Panel */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-surface-50 border border-slate-800 rounded-xl p-5 relative overflow-hidden">
-              <span className="text-3xl mb-2 block">💰</span>
+              <span className="text-3xl mb-2 block"></span>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-mono">
                 Total Tracked Capital
               </p>
@@ -136,7 +136,7 @@ export function FundingSection() {
             </div>
 
             <div className="bg-surface-50 border border-slate-800 rounded-xl p-5">
-              <span className="text-3xl mb-2 block">📈</span>
+              <span className="text-3xl mb-2 block"></span>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-mono">
                 Average Round Value
               </p>
@@ -149,7 +149,7 @@ export function FundingSection() {
             </div>
 
             <div className="bg-surface-50 border border-slate-800 rounded-xl p-5">
-              <span className="text-3xl mb-2 block">🔔</span>
+              <span className="text-3xl mb-2 block"></span>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-mono">
                 Funding round events
               </p>
@@ -162,7 +162,7 @@ export function FundingSection() {
             </div>
 
             <div className="bg-surface-50 border border-slate-800 rounded-xl p-5">
-              <span className="text-3xl mb-2 block">🏆</span>
+              <span className="text-3xl mb-2 block"></span>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-mono">
                 Lead Priority Rate
               </p>
@@ -225,7 +225,7 @@ export function FundingSection() {
                 </div>
               ) : (
                 <div className="text-center py-10">
-                  <span className="text-2xl">🌱</span>
+                  <span className="text-2xl"></span>
                   <p className="text-sm text-slate-400 mt-2">No funded target accounts registered yet.</p>
                 </div>
               )}
@@ -326,7 +326,7 @@ export function FundingSection() {
                       rel="noopener noreferrer"
                       className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
                     >
-                      Article Source 🔗
+                      Article Source 
                     </a>
                   )}
                 </div>
@@ -335,7 +335,7 @@ export function FundingSection() {
           </div>
         ) : (
           <div className="text-center py-16">
-            <span className="text-3xl mb-3 block">💵</span>
+            <span className="text-3xl mb-3 block"></span>
             <h4 className="font-semibold text-slate-300 text-base">No fundinground events available.</h4>
             <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
               Please click "Ingest Funding rounds" above to crawl startup news feeds and analyze targeted capitalization signals.

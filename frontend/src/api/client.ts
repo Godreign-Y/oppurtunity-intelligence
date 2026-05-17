@@ -1,22 +1,51 @@
 /**
  * api/client.ts
  * Axios-based API client for the Opportunity Intelligence Platform backend.
+ *
+ * In development: uses Vite's dev proxy (/api → http://127.0.0.1:8000)
+ * In production:  uses VITE_API_BASE_URL env variable (e.g. https://api.yourdomain.com)
  */
 
 import axios from 'axios';
-import type { AnalyzeResponse, Company, Signal } from '../types';
+import type { Company, Signal } from '../types';
+
+const _apiBase = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api/v1`
+  : '/api/v1';
 
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: _apiBase,
   headers: { 'Content-Type': 'application/json' },
 });
 
 /** Trigger the full analysis pipeline for a company. */
-export async function analyzeCompany(companyName: string): Promise<AnalyzeResponse> {
-  const { data } = await api.post<AnalyzeResponse>('/analyze', {
+export async function startAnalyzeCompany(companyName: string, pipelines: string[]): Promise<import('../types').PipelineRun> {
+  const { data } = await api.post<import('../types').PipelineRun>('/analyze/start', {
     company_name: companyName,
+    pipelines_selected: pipelines
   });
   return data;
+}
+
+export async function getPipelineRuns(companyName: string): Promise<import('../types').PipelineRun[]> {
+  const { data } = await api.get<import('../types').PipelineRun[]>(`/analyze/runs/${encodeURIComponent(companyName)}`);
+  return data;
+}
+
+export async function getPipelineRun(runId: string): Promise<import('../types').PipelineRun> {
+  const { data } = await api.get<import('../types').PipelineRun>(`/analyze/${runId}`);
+  return data;
+}
+
+export async function fetchPipelineLogs(params?: { runId?: string; companyName?: string; limit?: number }): Promise<string[]> {
+  const { data } = await api.get<{ lines: string[] }>('/analyze/logs/tail', {
+    params: {
+      run_id: params?.runId,
+      company_name: params?.companyName,
+      limit: params?.limit ?? 120,
+    },
+  });
+  return data.lines;
 }
 
 /** List all tracked companies. */
@@ -103,3 +132,21 @@ export async function fetchHiringInsights(): Promise<import('../types').HiringIn
   return data;
 }
 
+export async function fetchRelantoPractices(): Promise<import('../types').RelantoPractice[]> {
+  const { data } = await api.get<import('../types').RelantoPractice[]>('/service-intelligence/practices');
+  return data;
+}
+
+export async function fetchRelantoOpportunities(companyName?: string, practiceCode?: string, refresh = false): Promise<import('../types').RelantoOpportunity[]> {
+  const { data } = await api.get<import('../types').RelantoOpportunity[]>('/service-intelligence/opportunities', {
+    params: { company_name: companyName || undefined, practice_code: practiceCode || undefined, refresh },
+  });
+  return data;
+}
+
+export async function fetchOutreachRecommendations(companyName?: string): Promise<import('../types').OutreachRecommendation[]> {
+  const { data } = await api.get<import('../types').OutreachRecommendation[]>('/outreach/recommendations', {
+    params: { company_name: companyName || undefined },
+  });
+  return data;
+}

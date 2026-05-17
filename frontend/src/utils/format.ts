@@ -4,7 +4,7 @@
  */
 
 /**
- * Format a confidence float (0.0–1.0) as a percentage string.
+ * Format a confidence float (0.01.0) as a percentage string.
  *
  * @param score - Float confidence score.
  * @returns Formatted percentage string, e.g. "82%".
