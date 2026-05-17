@@ -1,115 +1,433 @@
-# REDIT
+# REDIT — Reddit Opportunity Intelligence Engine
 
-AI-driven **Reddit market intelligence pipeline** — extract repeated technology/product frustrations that may signal business opportunities.
+## Overview
 
-## Current (Phase 2+)
+REDIT is an AI-powered backend system that discovers workflow pains, developer frustrations, operational bottlenecks, and recurring business problems from Reddit discussions.
 
-- **Global Reddit discovery** — `r/all`, `r/popular`, and `search.json` (no curated subreddit lists)
-- **Semantic tech relevance** via `all-MiniLM-L6-v2` embeddings
-- **Product/company extraction**, **VADER frustration**, **workflow/business validation**
-- **Two API endpoints only** — ingestion + intelligence retrieval/export
-- Validated intelligence JSON stored per run (in-memory; Neon later)
+The system ingests Reddit posts, filters meaningful workflow pain using semantic AI pipelines, canonicalizes noisy discussions into structured intelligence, generates embeddings, clusters semantically similar pain points, and stores business intelligence for downstream analytics and retrieval.
 
-## Phase 1 (done)
+---
 
-- FastAPI backend with modular `src/redit` layout
-- Reddit ingestion via **public JSON endpoints** (no OAuth required)
-- Swappable `RedditSource` interface (PRAW stub for later)
-- Streaming filtration pipeline (one post at a time; no blind bulk storage)
+# Core Idea
 
-## Stack
+Most Reddit discussions are noisy, emotional, repetitive, or irrelevant.
 
-| Component | Choice |
-|-----------|--------|
-| Python | 3.11.x |
-| Packages | [uv](https://docs.astral.sh/uv/) only |
-| API | FastAPI + Uvicorn |
-| DB (next phase) | Neon + Alembic |
+REDIT transforms unstructured Reddit discussions into:
 
-## Project layout
+* normalized workflow pain statements
+* structured business intelligence
+* semantic embeddings
+* clustered operational pain themes
+* searchable business insights
+
+The goal is to surface:
+
+* infrastructure pain
+* DevOps bottlenecks
+* developer workflow frustrations
+* AI tooling pain points
+* operational inefficiencies
+* emerging business opportunities
+
+---
+
+# High-Level Architecture
 
 ```text
-REDIT/
-├── pyproject.toml          # uv project root
-├── .venv/                  # single shared environment
-├── backend/
-│   ├── src/redit/
-│       ├── api/           # HTTP routes
-│       ├── config/        # Settings
-│       ├── filters/       # Stream filter stages
-│       ├── ingestion/     # RedditSource + public JSON
-│       ├── models/        # Pydantic schemas
-│       ├── pipelines/     # Orchestrator
-│       ├── services/      # IngestionService
-│       ├── storage/       # Run store (in-memory Phase 1)
-│       └── utils/         # Logging
-├── docs/                  # Architecture & roadmap
-├── .env.example
-└── rules.md
+                ┌───────────────────┐
+                │    Reddit APIs    │
+                └─────────┬─────────┘
+                          │
+                          ▼
+              ┌─────────────────────┐
+              │ Discovery Pipeline  │
+              └─────────┬───────────┘
+                        │
+                        ▼
+              ┌─────────────────────┐
+              │ Semantic Filtering  │
+              │ Workflow Detection  │
+              │ Frustration Scoring │
+              └─────────┬───────────┘
+                        │
+                        ▼
+              ┌─────────────────────┐
+              │ Canonicalization    │
+              │ Intelligence Build  │
+              └─────────┬───────────┘
+                        │
+                        ▼
+              ┌─────────────────────┐
+              │ Embedding Generation│
+              └─────────┬───────────┘
+                        │
+                        ▼
+              ┌─────────────────────┐
+              │ PostgreSQL +        │
+              │ pgvector Storage    │
+              └─────────┬───────────┘
+                        │
+                        ▼
+              ┌─────────────────────┐
+              │ UMAP + HDBSCAN      │
+              │ Semantic Clustering │
+              └─────────┬───────────┘
+                        │
+                        ▼
+              ┌─────────────────────┐
+              │ Aggregated Business │
+              │ Intelligence        │
+              └─────────────────────┘
 ```
 
-## Quick start
+---
 
-### 1. Prerequisites
+# Pipeline Stages
 
-- Python **3.11**
-- [uv](https://docs.astral.sh/uv/getting-started/installation/)
+## Stage 1 — Discovery + Semantic Filtering
 
-### 2. Environment
+The ingestion system fetches Reddit posts from:
+
+* subreddits
+* global feeds
+* Reddit search
+
+Each post passes through multiple semantic filters.
+
+### Filters Include
+
+* workflow pain detection
+* frustration scoring
+* business relevance detection
+* metadata validation
+* semantic classification
+
+Only high-signal posts continue through the pipeline.
+
+---
+
+## Stage 2 — Canonicalization + Intelligence Extraction
+
+Accepted posts are transformed into structured intelligence objects.
+
+The system extracts:
+
+* normalized problem statement
+* pain category
+* business impact
+* frustration score
+* business relevance
+* affected tools
+* affected platforms
+* potential companies affected
+
+This removes Reddit noise and converts discussions into clean intelligence records.
+
+---
+
+## Stage 3 — Embedding Generation + Persistence
+
+Validated intelligence records are embedded using SentenceTransformers.
+
+The embeddings are stored inside PostgreSQL using `pgvector`.
+
+This enables:
+
+* semantic search
+* similarity retrieval
+* clustering
+* future recommendation systems
+* opportunity mining
+
+---
+
+## Stage 4 — Semantic Clustering (Experimental)
+
+Stored embeddings are fetched and grouped using:
+
+* UMAP for dimensionality reduction
+* HDBSCAN for density-based clustering
+
+The clustering layer attempts to identify:
+
+* recurring workflow pains
+* repeated operational bottlenecks
+* emerging tooling frustrations
+* semantically related business problems
+
+### Current Clustering Flow
+
+```text
+Embeddings
+↓
+UMAP dimensionality reduction
+↓
+HDBSCAN clustering
+↓
+In-memory cluster analysis
+↓
+Business intelligence aggregation
+```
+
+### Notes
+
+* clustering currently runs in-memory
+* intermediate cluster tables are not persisted
+* aggregation only runs if valid clusters are detected
+* clustering quality improves with larger datasets
+
+---
+
+# Tech Stack
+
+| Layer           | Technology           |
+| --------------- | -------------------- |
+| Backend API     | FastAPI              |
+| Async Runtime   | asyncio              |
+| Package Manager | uv                   |
+| Database        | PostgreSQL           |
+| Vector Storage  | pgvector             |
+| ORM             | SQLAlchemy Async     |
+| ML Embeddings   | SentenceTransformers |
+| Clustering      | UMAP + HDBSCAN       |
+| LLM Extraction  | Groq API             |
+| HTTP Client     | httpx                |
+
+---
+
+# Why `uv`?
+
+This project uses `uv` instead of pip because:
+
+* extremely fast dependency resolution
+* reproducible environments
+* modern Python workflow
+* better virtual environment handling
+
+---
+
+# Project Structure
+
+```text
+backend/src/redit/
+
+├── aggregation/          # Business intelligence aggregation
+├── api/                  # FastAPI endpoints
+├── canonicalization/     # LLM-based normalization
+├── clustering/           # UMAP + HDBSCAN semantic clustering
+├── config/               # Settings & environment config
+├── embeddings/           # Embedding generation
+├── filters/              # Semantic filter stages
+├── ingestion/            # Reddit ingestion sources
+├── intelligence/         # Intelligence builders
+├── ml/                   # ML models and scoring
+├── pipelines/            # Pipeline orchestration
+├── services/             # High-level services
+├── storage/              # Database models/repositories
+└── utils/                # Logging and utilities
+```
+
+---
+
+# Database Tables
+
+## `canonical_intelligence`
+
+Stores validated and embedded intelligence records.
+
+### Contains
+
+* normalized workflow pain
+* metadata
+* semantic embeddings
+* business scoring
+
+---
+
+## `final_business_intelligence`
+
+Stores aggregated business intelligence generated from semantic clusters.
+
+### Contains
+
+* cluster themes
+* representative problem statements
+* supporting post counts
+* business scores
+* aggregated frustration signals
+
+---
+
+# Environment Variables
+
+Create a `.env` file in the project root.
+
+```env
+GROQ_API_KEY=your_groq_api_key
+
+DATABASE_URL=postgresql://username:password@host/dbname?ssl=require
+```
+
+---
+
+# Installation
+
+## 1. Clone Repository
 
 ```bash
-cp .env.example .env
+git clone <repo_url>
+cd REDIT
 ```
 
-Edit `.env` — set a descriptive `REDDIT_USER_AGENT` (Reddit requires this).
+---
 
-### 3. Install & run
+## 2. Install uv
 
-From the **project root** (`REDIT/`):
+```bash
+pip install uv
+```
+
+---
+
+## 3. Create Virtual Environment
+
+```bash
+uv venv
+```
+
+---
+
+## 4. Activate Environment
+
+### Windows
+
+```bash
+.venv\Scripts\activate
+```
+
+### Linux / Mac
+
+```bash
+source .venv/bin/activate
+```
+
+---
+
+## 5. Install Dependencies
 
 ```bash
 uv sync
+```
+
+---
+
+# Running the Backend
+
+From project root:
+
+```bash
+cd backend/src
+```
+
+Run FastAPI server:
+
+```bash
 uv run uvicorn redit.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-On OneDrive paths, if `uv sync` fails on hardlinks, use: `set UV_LINK_MODE=copy` (Windows) before sync.
+---
 
-API docs: http://localhost:8000/docs
+# Swagger Docs
 
-### 4. API (2 endpoints)
+After startup:
 
-**Ingest** global Reddit → pipeline → store intelligence:
-
-```bash
-curl -X POST http://localhost:8000/api/v1/ingestion \
-  -H "Content-Type: application/json" \
-  -d "{\"feeds\":[\"all\",\"popular\"],\"limit_per_source\":25}"
+```text
+http://localhost:8000/docs
 ```
 
-**Retrieve intelligence** (use `run_id` from ingestion response):
+---
 
-```bash
-curl http://localhost:8000/api/v1/intelligence/{run_id}
-curl "http://localhost:8000/api/v1/intelligence/{run_id}?export=true" -o intelligence.json
+# Example Ingestion Payload
+
+```json
+{
+  "source_mode": "hybrid",
+  "subreddits": [
+    "devops",
+    "kubernetes",
+    "terraform",
+    "sysadmin",
+    "sre",
+    "backend",
+    "MLOps"
+  ],
+  "limit_per_source": 15,
+  "sort": "new",
+  "dry_run": false
+}
 ```
 
-First startup downloads the sentence-transformer model (~90MB).
+---
 
-## Switching to PRAW later
+# Example End-to-End Flow
 
-1. Set `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` in `.env`
-2. Implement `PrawRedditSource` in `ingestion/praw_source.py`
-3. Set `REDDIT_SOURCE=praw`
-
-No changes required in `pipelines/`, `filters/`, or `services/`.
-
-## Tests
-
-```bash
-uv sync --extra dev
-uv run pytest
+```text
+1. Reddit posts fetched
+2. Semantic filtering executed
+3. Workflow pain detected
+4. Post canonicalized
+5. Intelligence object created
+6. Embedding generated
+7. Stored in PostgreSQL
+8. Embeddings clustered
+9. Aggregated business intelligence generated
 ```
 
-## Documentation
+---
 
-See [`docs/`](docs/) for full architecture, pipeline mapping, and MVP roadmap.
+# Current Status
+
+## Stable Features
+
+* staged ingestion pipeline
+* semantic filtering
+* canonical intelligence extraction
+* async-safe embedding generation
+* PostgreSQL + pgvector persistence
+* NeonDB compatibility
+
+## Experimental Features
+
+* semantic clustering
+* UMAP/HDBSCAN aggregation
+* recurring pain discovery
+
+---
+
+# Future Improvements
+
+* vector search API
+* semantic retrieval dashboard
+* real-time ingestion workers
+* Redis/Kafka queue architecture
+* batched transformer inference
+* GPU acceleration
+* opportunity trend analytics
+* company pain heatmaps
+
+---
+
+# Key Design Principles
+
+* semantic-first filtering
+* async-safe architecture
+* staged ingestion pipelines
+* modular filter system
+* vector-native storage
+* production-oriented transaction handling
+
+---
+
+# License
+
+MIT License
