@@ -5,6 +5,7 @@ Application configuration loaded from environment variables using Pydantic Setti
 All external service credentials and runtime options are managed here.
 """
 
+from functools import lru_cache
 from pydantic_settings import BaseSettings
 from pydantic import Field
 
@@ -38,6 +39,13 @@ class Settings(BaseSettings):
     )
     llm_model: str = Field(default="openai/gpt-4o-mini", alias="LLM_MODEL")
 
+    # --- Ingestions API Keys ---
+    llm_api_key: str = Field(default="", alias="LLM_API_KEY")
+    serpapi_api_key: str = Field(default="", alias="SERPAPI_API_KEY")
+
+    # --- GitHub ---
+    GITHUB_TOKEN: str = Field(default="", alias="GITHUB_TOKEN")
+
     @property
     def cors_origins_list(self) -> list[str]:
         """Parse CORS_ORIGINS string into a list."""
@@ -47,3 +55,10 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+@lru_cache()
+def get_settings() -> Settings:
+    """Return the cached settings singleton (compatible with second-project services)."""
+    return settings
+

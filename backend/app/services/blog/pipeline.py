@@ -8,6 +8,7 @@ Orchestrates the full engineering blog intelligence pipeline:
 """
 
 import logging
+import asyncio
 from typing import Optional
 
 from app.services.blog.blog_discovery import discover_blog_urls, probe_rss_feed
@@ -21,7 +22,7 @@ from app.schemas.signal import UnifiedSignalSchema
 
 logger = logging.getLogger(__name__)
 
-MAX_ARTICLES_PER_BLOG = 5
+MAX_ARTICLES_PER_BLOG = 3
 
 
 async def run_blog_pipeline(
@@ -54,7 +55,7 @@ async def run_blog_pipeline(
     primary_blog_url = blog_urls[0]
     signals: list[UnifiedSignalSchema] = []
 
-    for blog_url in blog_urls[:3]:
+    for blog_url in blog_urls[:1]:
         rss_url = await probe_rss_feed(blog_url)
 
         if rss_url:
@@ -64,18 +65,26 @@ async def run_blog_pipeline(
                 blog_url, max_articles=MAX_ARTICLES_PER_BLOG
             )
 
-        for article in articles:
+        # Prepare extraction tasks
+        async def process_article(article: dict) -> Optional[UnifiedSignalSchema]:
             article_url = article.get("link") or article.get("url", blog_url)
             title = article.get("title", "")
-            # Prefer pre-fetched summary; fall back to full article fetch
             content = article.get("summary") or article.get("content") or ""
 
+            # If content is short, fetch full article via Firecrawl
             if len(content) < 200 and article_url != blog_url:
                 content = await extract_article_content(article_url) or content
 
-            signal = extract_signal_from_article(title, content, article_url, company_name)
-            if signal:
-                signals.append(signal)
+            return extract_signal_from_article(title, content, article_url, company_name)
+
+        tasks = [process_article(art) for art in articles]
+        extracted_signals = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        for sig in extracted_signals:
+            if isinstance(sig, Exception):
+                logger.warning(f"[BlogPipeline] Article extraction failed: {sig}")
+            elif sig:
+                signals.append(sig)
 
     logger.info(
         f"[BlogPipeline] {len(signals)} signals extracted for {company_name}"

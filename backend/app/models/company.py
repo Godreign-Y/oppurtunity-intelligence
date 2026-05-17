@@ -42,3 +42,6 @@ class Company(Base):
     )
 
     signals = relationship("Signal", back_populates="company", cascade="all, delete-orphan")
+    market_pain_signals = relationship("MarketPainSignal", back_populates="company", cascade="all, delete-orphan")
+    funding_events = relationship("FundingEvent", back_populates="company", cascade="all, delete-orphan")
+    hiring_signals = relationship("HiringSignal", back_populates="company", cascade="all, delete-orphan")

@@ -5,11 +5,12 @@
 
 import { useEffect, useState } from 'react';
 import type { Signal } from '../../types';
-import { fetchSignals } from '../../api/client';
+import { fetchSignals, fetchMarketPainSignals } from '../../api/client';
 import { SignalCard } from '../shared/SignalCard';
 import { PainChart } from './PainChart';
 import { TechCloud } from '../shared/TechCloud';
 import { OpportunitySummary } from '../shared/OpportunitySummary';
+import { MarketPainSection } from './MarketPainSection';
 import { Loader2 } from 'lucide-react';
 
 interface Props {
@@ -19,14 +20,21 @@ interface Props {
 
 export function SignalsPanel({ companyName, onSelectSignal }: Props) {
   const [signals, setSignals] = useState<Signal[]>([]);
+  const [marketPainSignals, setMarketPainSignals] = useState<import('../../types').MarketPainSignal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetchSignals(companyName)
-      .then(setSignals)
+    Promise.all([
+      fetchSignals(companyName),
+      fetchMarketPainSignals(companyName).catch(() => []) // fail gracefully
+    ])
+      .then(([sigData, mpData]) => {
+        setSignals(sigData);
+        setMarketPainSignals(mpData);
+      })
       .catch(() => setError('No signals found for this company.'))
       .finally(() => setLoading(false));
   }, [companyName]);
@@ -59,6 +67,9 @@ export function SignalsPanel({ companyName, onSelectSignal }: Props) {
         <div className="flex gap-4 mt-1">
           <span className="text-xs text-purple-400 font-mono">{careerSignals.length} career</span>
           <span className="text-xs text-green-400 font-mono">{blogSignals.length} blog</span>
+          {marketPainSignals.length > 0 && (
+            <span className="text-xs text-red-400 font-mono">{marketPainSignals.length} market pain</span>
+          )}
         </div>
       </div>
 
@@ -85,6 +96,13 @@ export function SignalsPanel({ companyName, onSelectSignal }: Props) {
         <Section title="Engineering Blog Signals" count={blogSignals.length}>
           {blogSignals.map((s) => <SignalCard key={s.id} signal={s} onClick={onSelectSignal} />)}
         </Section>
+      )}
+
+      {/* Market Pain signals */}
+      {marketPainSignals.length > 0 && (
+        <div className="mt-8">
+          <MarketPainSection signals={marketPainSignals} />
+        </div>
       )}
     </div>
   );

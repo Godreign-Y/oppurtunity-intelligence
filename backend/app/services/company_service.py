@@ -101,6 +101,14 @@ def save_signals(
     """
     saved: list[Signal] = []
     for s in signals:
+        ts = None
+        if s.timestamp:
+            try:
+                ts = datetime.fromisoformat(s.timestamp.replace("Z", "+00:00"))
+            except (ValueError, TypeError, AttributeError):
+                # Try parsing relative times or simple formats if needed, or leave as None
+                pass
+
         record = Signal(
             company_id=company.id,
             source_type=s.source_type,
@@ -119,7 +127,7 @@ def save_signals(
             seniority=s.seniority,
             location=s.location,
             urgency=s.urgency,
-            timestamp=datetime.fromisoformat(s.timestamp.replace("Z", "+00:00")) if s.timestamp else None,
+            timestamp=ts,
         )
         db.add(record)
         saved.append(record)
@@ -157,3 +165,85 @@ def list_companies(db: Session) -> list[Company]:
         List of Company ORM instances.
     """
     return db.query(Company).order_by(Company.created_at.desc()).all()
+
+
+def save_market_pain_signals(
+    db: Session,
+    company: Company,
+    signals: list,
+) -> list:
+    """
+    Persist market pain signals to the database.
+
+    Args:
+        db: SQLAlchemy database session.
+        company: Company ORM instance.
+        signals: List of MarketPainSignalSchema instances.
+
+    Returns:
+        List of persisted MarketPainSignal ORM instances.
+    """
+    from app.models.market_pain import MarketPainSignal
+
+    saved = []
+    for s in signals:
+        ts = None
+        if s.timestamp:
+            try:
+                ts = datetime.fromisoformat(s.timestamp.replace("Z", "+00:00"))
+            except (ValueError, AttributeError):
+                pass
+
+        record = MarketPainSignal(
+            company_id=company.id,
+            source=s.source,
+            post_id=s.post_id,
+            subreddit=s.subreddit,
+            title=s.title,
+            body=s.body,
+            url=s.url,
+            author=s.author,
+            upvotes=s.upvotes,
+            num_comments=s.num_comments,
+            product=s.product,
+            company_name_detected=s.company,
+            technologies=s.technologies,
+            workflows=s.workflows,
+            pain_category=s.pain_category,
+            pain_subcategories=s.pain_subcategories,
+            workflow_pains=s.workflow_pains,
+            severity=s.severity,
+            tech_confidence=s.tech_confidence,
+            sentiment_score=s.sentiment_score,
+            business_relevance=s.business_relevance,
+            momentum_score=s.momentum_score,
+            strategic_fit_score=s.strategic_fit_score,
+            confidence=s.confidence,
+            capability_matches=s.capability_matches,
+            matched_practices=s.matched_practices,
+            matched_accelerators=s.matched_accelerators,
+            timestamp=ts,
+        )
+        db.add(record)
+        saved.append(record)
+
+    db.commit()
+    logger.info(f"[CompanyService] Saved {len(saved)} market pain signals for: {company.name}")
+    return saved
+
+
+def get_company_market_pain_signals(db: Session, company_name: str) -> list:
+    """
+    Retrieve all market pain signals for a company by name.
+
+    Args:
+        db: SQLAlchemy database session.
+        company_name: Company name.
+
+    Returns:
+        List of MarketPainSignal ORM instances.
+    """
+    company = db.query(Company).filter(Company.name == company_name).first()
+    if not company:
+        return []
+    return company.market_pain_signals

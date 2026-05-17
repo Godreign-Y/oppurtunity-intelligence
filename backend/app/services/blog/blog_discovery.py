@@ -72,11 +72,18 @@ async def discover_blog_urls(company_name: str) -> list[str]:
     logger.info(f"[BlogDiscovery] Discovering blogs for: {company_name}")
     urls = await discover_urls(company_name, BLOG_SEARCH_PATTERNS)
 
-    # Filter to keep only likely engineering blog URLs
+    company_slug = company_name.lower().replace(" ", "")
+    company_parts = company_name.lower().split()
+
+    # Filter to keep only likely engineering blog URLs THAT ALSO BELONG TO THE COMPANY
     blog_indicators = ["blog", "engineering", "tech", "medium.com", "dev.to", "rss"]
-    filtered = [
-        url for url in urls if any(ind in url.lower() for ind in blog_indicators)
-    ]
+    filtered = []
+    for url in urls:
+        lower_url = url.lower()
+        has_indicator = any(ind in lower_url for ind in blog_indicators)
+        has_company = company_slug in lower_url or any(part in lower_url for part in company_parts if len(part) > 2)
+        if has_indicator and has_company:
+            filtered.append(url)
 
     logger.info(f"[BlogDiscovery] Found {len(filtered)} candidate blog URLs")
     return filtered[:8]  # Cap to avoid excessive downstream fetches

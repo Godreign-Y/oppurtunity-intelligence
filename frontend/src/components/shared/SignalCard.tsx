@@ -26,7 +26,7 @@ function getRelativeTime(timestamp?: string | null) {
   return `${days} days ago`;
 }
 
-export function SignalCard({ signal, onClick, compact }: Props) {
+export function SignalCard({ signal, onClick }: Props) {
   const sourceBadge = SOURCE_STYLES[signal.source_type] ?? 'bg-slate-700 text-slate-300';
   const confidencePct = Math.round(signal.confidence * 100);
 

@@ -60,3 +60,47 @@ def get_signals_for_company(
             detail=f"No signals found for company: {company_name}",
         )
     return signals
+
+
+@router.get(
+    "/companies/{company_name}/market_pain",
+    summary="Get market pain signals for a company",
+)
+def get_market_pain_for_company(
+    company_name: str,
+    db: Session = Depends(get_db),
+) -> list:
+    """
+    Return all market pain signals for the specified company.
+    """
+    from app.services.company_service import get_company_market_pain_signals
+    signals = get_company_market_pain_signals(db, company_name)
+    
+    # Serialize for response
+    return [
+        {
+            "id": str(r.id),
+            "source": r.source,
+            "subreddit": r.subreddit,
+            "title": r.title,
+            "body": r.body[:300] if r.body else "",
+            "url": r.url,
+            "upvotes": r.upvotes,
+            "num_comments": r.num_comments,
+            "product": r.product,
+            "company": r.company_name_detected,
+            "technologies": r.technologies or [],
+            "pain_category": r.pain_category,
+            "pain_subcategories": r.pain_subcategories or [],
+            "workflow_pains": r.workflow_pains or [],
+            "severity": r.severity,
+            "sentiment_score": r.sentiment_score,
+            "momentum_score": r.momentum_score,
+            "strategic_fit_score": r.strategic_fit_score,
+            "confidence": r.confidence,
+            "matched_practices": r.matched_practices or [],
+            "matched_accelerators": r.matched_accelerators or [],
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in signals
+    ]

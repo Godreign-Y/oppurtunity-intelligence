@@ -4,7 +4,6 @@
  */
 
 import type { Signal } from '../../types';
-import { snakeToTitle } from '../../utils/format';
 
 interface Props {
   signals: Signal[];

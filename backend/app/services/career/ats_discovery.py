@@ -48,21 +48,18 @@ def detect_ats_from_urls(urls: list[str], company_name: str) -> tuple[Optional[s
         Tuple of (ats_platform, ats_url) or (None, None) if not detected.
     """
     company_slug = company_name.lower().replace(" ", "")
+    company_parts = company_name.lower().split()
     
-    # First pass: look for exact slug matches
+    # Pass: look for exact slug or part matches in the URL
     for url in urls:
         lower_url = url.lower()
-        if company_slug in lower_url:
+        if company_slug in lower_url or any(part in lower_url for part in company_parts if len(part) > 2):
             for signature, platform in ATS_URL_SIGNATURES.items():
                 if signature in lower_url:
                     return platform, url
                     
-    # Second pass: fallback to any signature match if no slug match
-    for url in urls:
-        for signature, platform in ATS_URL_SIGNATURES.items():
-            if signature in url:
-                return platform, url
-                
+    # Strict fallback: If no URL contains the slug, we DO NOT randomly guess an ATS
+    # to avoid returning unrelated company jobs.
     return None, None
 
 

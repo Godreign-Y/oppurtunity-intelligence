@@ -3,8 +3,9 @@
  * Displays the AI opportunity analysis result from the pipeline.
  */
 
-import { TrendingUp, Users, Globe, Brain, CheckCircle } from 'lucide-react';
+import { TrendingUp, Users, Globe, Brain, CheckCircle, AlertTriangle } from 'lucide-react';
 import { SignalCard } from '../shared/SignalCard';
+import { MarketPainSection } from './MarketPainSection';
 import type { AnalyzeResponse, Signal } from '../../types';
 
 interface Props {
@@ -26,10 +27,11 @@ export function AnalysisResult({ result, onSelectSignal }: Props) {
   return (
     <div className="mt-8 space-y-5 animate-fade-up">
       {/* Header row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard icon={<TrendingUp className="w-5 h-5 text-brand-400" />} label="Total Signals" value={result.total_signals} />
         <StatCard icon={<Users className="w-5 h-5 text-purple-400" />} label="Career Signals" value={result.career_signals_count} />
         <StatCard icon={<Globe className="w-5 h-5 text-green-400" />} label="Blog Signals" value={result.blog_signals_count} />
+        <StatCard icon={<AlertTriangle className="w-5 h-5 text-red-400" />} label="Market Pain" value={result.market_pain_count ?? 0} />
         <StatCard icon={<Brain className="w-5 h-5 text-accent" />} label="ATS Platform" value={result.ats_platform ?? '—'} />
       </div>
 
@@ -108,6 +110,11 @@ export function AnalysisResult({ result, onSelectSignal }: Props) {
             </p>
           )}
         </div>
+      )}
+
+      {/* Market Pain Intelligence Section */}
+      {result.market_pain_signals && result.market_pain_signals.length > 0 && (
+        <MarketPainSection signals={result.market_pain_signals} />
       )}
     </div>
   );
