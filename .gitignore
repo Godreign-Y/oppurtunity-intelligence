@@ -1,0 +1,12 @@
+.venv/
+backend/.venv/
+__pycache__/
+*.py[cod]
+.env
+.pytest_cache/
+.ruff_cache/
+dist/
+backend/uv.lock
+*.egg-info/
+node_modules/
+frontend/dist/
