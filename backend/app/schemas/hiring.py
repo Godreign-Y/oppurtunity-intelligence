@@ -15,6 +15,8 @@ class HiringSignalBase(BaseModel):
     posted_date: Optional[str] = None
     sanitized_description: Optional[str] = None
     detected_tech_stack: List[str] = []
+    source_url: Optional[str] = None
+    opportunity_category: Optional[str] = None
 
 
 class HiringSignalCreate(HiringSignalBase):

@@ -29,5 +29,6 @@ class FundingEvent(Base):
     source_url = Column(Text, nullable=True)
     raw_text = Column(Text, nullable=True)
     opportunity_score = Column(Integer, default=10)
+    opportunity_category = Column(String(100), nullable=True)
 
     company = relationship("Company", back_populates="funding_events")

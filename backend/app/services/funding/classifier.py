@@ -5,12 +5,10 @@ Determines if a company is product/SaaS or a service provider.
 """
 
 import json
-import httpx
 import logging
 from typing import Dict
-from openai import AsyncOpenAI
 
-from app.core.config import settings
+from app.clients.llm import get_llm_client, get_llm_model
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +19,7 @@ class CompanyClassifier:
     """
 
     def __init__(self):
-        self.gemini_key = settings.llm_api_key
-        self.gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.gemini_key}"
+        pass
 
     async def classify_company(self, company_name: str, context: str) -> bool:
         """
@@ -38,33 +35,12 @@ class CompanyClassifier:
         {context}
         """
 
-        # Try Gemini direct first
-        if self.gemini_key:
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}]
-            }
-            async with httpx.AsyncClient() as client:
-                try:
-                    response = await client.post(self.gemini_url, json=payload, timeout=10.0)
-                    response.raise_for_status()
-                    data = response.json()
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        output_text = candidates[0]["content"]["parts"][0]["text"]
-                        return self._parse_result(output_text)
-                except Exception as e:
-                    logger.error(f"[CompanyClassifier] Gemini classification failed: {e}")
-                    # Allow fallback
-
-        # Fallback to OpenRouter
-        if settings.openrouter_api_key:
+        # Use NVIDIA NIM only.
+        client = get_llm_client()
+        if client:
             try:
-                client = AsyncOpenAI(
-                    api_key=settings.openrouter_api_key,
-                    base_url=settings.openrouter_base_url,
-                )
                 response = await client.chat.completions.create(
-                    model=settings.llm_model,
+                    model=get_llm_model(),
                     messages=[
                         {"role": "system", "content": "You are a precise classifier. Respond only with raw JSON (no formatting fences)."},
                         {"role": "user", "content": prompt}
@@ -75,10 +51,10 @@ class CompanyClassifier:
                 output_text = response.choices[0].message.content or ""
                 return self._parse_result(output_text)
             except Exception as e:
-                logger.error(f"[CompanyClassifier] OpenRouter classification failed: {e}")
+                logger.error(f"[CompanyClassifier] NVIDIA NIM classification failed: {e}")
                 return True  # Fail open to avoid dropping potentially valid companies
 
-        logger.warning("[CompanyClassifier] No LLM API credentials available. Failing open.")
+        logger.warning("[CompanyClassifier] NVIDIA_API_KEY is not configured. Failing open.")
         return True
 
     def _parse_result(self, raw_text: str) -> bool:

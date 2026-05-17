@@ -50,15 +50,9 @@ def get_signals_for_company(
     Returns:
         List of SignalResponse objects.
 
-    Raises:
-        HTTPException 404 if the company has no recorded signals.
+    Returns an empty list if the company has no recorded signals.
     """
     signals = get_company_signals(db, company_name)
-    if not signals:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No signals found for company: {company_name}",
-        )
     return signals
 
 
@@ -91,6 +85,7 @@ def get_market_pain_for_company(
             "company": r.company_name_detected,
             "technologies": r.technologies or [],
             "pain_category": r.pain_category,
+            "opportunity_category": r.opportunity_category,
             "pain_subcategories": r.pain_subcategories or [],
             "workflow_pains": r.workflow_pains or [],
             "severity": r.severity,

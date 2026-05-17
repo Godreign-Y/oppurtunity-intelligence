@@ -19,3 +19,4 @@ class GitHubSignal(Base):
     source_url: Mapped[str] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(DateTime)
     metadata_json: Mapped[dict] = mapped_column(JSON)
+    opportunity_category: Mapped[str | None] = mapped_column(String(100), nullable=True)

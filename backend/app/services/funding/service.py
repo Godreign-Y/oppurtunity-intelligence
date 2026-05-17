@@ -16,8 +16,27 @@ from app.services.company_service import get_or_create_company
 from app.services.funding.rss_fetcher import RSSFetcher
 from app.services.funding.llm_extractor import LLMExtractor
 from app.services.funding.classifier import CompanyClassifier
+from app.config.category_mapper import map_to_opportunity_category
 
 logger = logging.getLogger(__name__)
+
+
+def infer_funding_opportunity_category(stage: str | None, amount: float | None) -> str:
+    """Map funding context to one canonical opportunity category."""
+    stage_lower = (stage or "").lower()
+    if "seed" in stage_lower or "pre-seed" in stage_lower:
+        return map_to_opportunity_category("cloud_migration")
+    if "series a" in stage_lower:
+        return map_to_opportunity_category("scaling_bottleneck")
+    if "series b" in stage_lower:
+        return map_to_opportunity_category("deployment_failure")
+    if "series c" in stage_lower or "series d" in stage_lower:
+        return map_to_opportunity_category("ai_ml_production_pain")
+    if amount and amount >= 50:
+        return map_to_opportunity_category("ai_ml_production_pain")
+    if amount and amount >= 20:
+        return map_to_opportunity_category("scaling_bottleneck")
+    return map_to_opportunity_category("cloud_migration")
 
 
 class FundingService:
@@ -90,7 +109,8 @@ class FundingService:
                     stage=stage,
                     source_url=signal["source_url"],
                     raw_text=signal["raw_text"],
-                    opportunity_score=opportunity_score
+                    opportunity_score=opportunity_score,
+                    opportunity_category=infer_funding_opportunity_category(stage, amount),
                 )
                 db.add(funding_event)
                 db.commit()
@@ -101,7 +121,10 @@ class FundingService:
                     "company_name": company_name,
                     "amount": amount,
                     "stage": stage,
-                    "score": opportunity_score
+                    "score": opportunity_score,
+                    "source_url": signal["source_url"],
+                    "raw_text": signal["raw_text"],
+                    "opportunity_category": funding_event.opportunity_category,
                 })
                 logger.info(f"[FundingPipeline] Saved funding event for {company_name} (${amount}M, Score: {opportunity_score})")
 

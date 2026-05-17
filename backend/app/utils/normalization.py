@@ -3,59 +3,17 @@ app/utils/normalization.py
 
 Utility functions for normalizing extracted data into the Unified Signal Schema.
 All sources (career pages, engineering blogs) must pass through this layer.
+
+Keywords are sourced from app/config/keywords/ — edit them there, not here.
 """
 
 from datetime import datetime, timezone
 from typing import Optional
 
 from app.schemas.signal import UnifiedSignalSchema
-
-# Pain indicator keyword mapping from the BRD
-CAREER_PAIN_KEYWORD_MAP: dict[str, str] = {
-    "kubernetes": "infra_scaling",
-    "terraform": "cloud_automation",
-    "observability": "monitoring_gaps",
-    "ci/cd": "deployment_complexity",
-    "cicd": "deployment_complexity",
-    "distributed systems": "scaling_pressure",
-    "sre": "reliability_pressure",
-    "ai engineer": "ai_initiative",
-    "security engineer": "security_pressure",
-    "platform engineer": "infra_scaling",
-    "mlops": "ai_initiative",
-    "data engineer": "data_scaling",
-}
-
-BLOG_PAIN_TAXONOMY: dict[str, list[str]] = {
-    "scaling_pressure": [
-        "scaling", "growth", "traffic spike", "load", "capacity", "sharding",
-        "distributed", "horizontal scaling", "vertical scaling",
-    ],
-    "deployment_complexity": [
-        "deployment", "ci/cd", "pipeline", "release", "rollback",
-        "blue-green", "canary", "gitops",
-    ],
-    "cloud_cost_pressure": [
-        "cost", "spend", "billing", "savings", "optimization", "rightsizing",
-        "reserved instances", "spot instances",
-    ],
-    "reliability_issues": [
-        "outage", "incident", "downtime", "sla", "slo", "reliability",
-        "latency", "p99", "uptime",
-    ],
-    "legacy_modernization": [
-        "migration", "rewrite", "refactor", "monolith", "legacy",
-        "modernization", "strangler fig",
-    ],
-    "ai_adoption_uncertainty": [
-        "llm", "genai", "generative ai", "ai integration", "ml model",
-        "mlops", "vector database", "embeddings",
-    ],
-    "security_pressure": [
-        "security", "compliance", "soc2", "gdpr", "vulnerability",
-        "penetration testing", "zero trust", "iam",
-    ],
-}
+from app.config.keywords.career_pain_keywords import CAREER_PAIN_KEYWORD_MAP
+from app.config.keywords.blog_pain_keywords import BLOG_PAIN_TAXONOMY
+from app.config.keywords.tech_stack_keywords import TECH_STACK_KEYWORDS
 
 
 def detect_pain_indicators_from_text(text: str) -> list[str]:
@@ -82,25 +40,18 @@ def detect_pain_indicators_from_text(text: str) -> list[str]:
 
 def detect_technologies_from_text(text: str) -> list[str]:
     """
-    Extract technology keywords from text via a curated list.
+    Extract technology keywords from text via the curated TECH_STACK_KEYWORDS list.
+
+    Keywords are defined in app/config/keywords/tech_stack_keywords.py.
 
     Args:
-        text: Lowercased content string.
+        text: Content string to scan.
 
     Returns:
         List of recognized technology names found in text.
     """
-    tech_keywords = [
-        "kubernetes", "k8s", "terraform", "aws", "gcp", "azure",
-        "kafka", "redis", "postgresql", "mysql", "mongodb", "elasticsearch",
-        "docker", "grafana", "prometheus", "datadog", "opentelemetry",
-        "airflow", "spark", "flink", "dbt", "snowflake", "bigquery",
-        "fastapi", "django", "flask", "rails", "nodejs", "go", "rust",
-        "python", "java", "typescript", "react", "next.js", "graphql",
-        "grpc", "rabbitmq", "celery", "istio", "envoy", "nginx",
-    ]
     lower = text.lower()
-    return [tech for tech in tech_keywords if tech in lower]
+    return [tech for tech in TECH_STACK_KEYWORDS if tech in lower]
 
 
 def map_pain_to_opportunity(pain_indicators: list[str]) -> list[str]:

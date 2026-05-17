@@ -16,3 +16,13 @@ from app.models.raw_signal import RawSignal  # noqa: F401
 from app.models.tracked_query import TrackedQuery  # noqa: F401
 from app.models.funding_event import FundingEvent  # noqa: F401
 from app.models.hiring_signal import HiringSignal  # noqa: F401
+from app.models.pipeline_run import PipelineRun  # noqa: F401
+from app.models.service_intelligence import (  # noqa: F401
+    ServiceCompany,
+    ServiceOpportunity,
+    ServiceOpportunityPracticeMapping,
+    ServicePastDeal,
+    ServicePractice,
+    ServiceTechnology,
+    RelantoOpportunityScore,
+)

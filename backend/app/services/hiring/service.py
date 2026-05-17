@@ -13,6 +13,7 @@ from app.models.hiring_signal import HiringSignal
 from app.services.company_service import get_or_create_company
 from app.services.hiring.fetcher import fetch_jobs
 from app.services.hiring.processor import sanitize_text, extract_tech_stack
+from app.config.category_mapper import map_to_opportunity_category
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,13 @@ class HiringService:
                     job_title=job.job_title,
                     posted_date=job.posted_date,
                     sanitized_description=sanitized_desc,
-                    detected_tech_stack=detected_stack
+                    detected_tech_stack=detected_stack,
+                    source_url=job.source_url,
+                    opportunity_category=map_to_opportunity_category(
+                        "mlops_scaling"
+                        if any(t.lower() in {"mlops", "pytorch", "tensorflow", "mlflow"} for t in detected_stack)
+                        else "deployment_complexity"
+                    ),
                 )
                 db.add(hiring_signal)
                 db.commit()

@@ -2,17 +2,15 @@
 app/services/funding/llm_extractor.py
 
 Uses a hybrid approach: fast Regex extraction first,
-falling back to Gemini or OpenRouter LLM if Regex fails.
+falling back to NVIDIA NIM if Regex fails.
 """
 
 import json
 import re
-import httpx
 import logging
 from typing import Dict, Optional
-from openai import AsyncOpenAI
 
-from app.core.config import settings
+from app.clients.llm import get_llm_client, get_llm_model
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +18,11 @@ logger = logging.getLogger(__name__)
 class LLMExtractor:
     """
     Uses a hybrid approach: fast Regex extraction first,
-    falling back to Gemini or OpenRouter LLM if Regex fails.
+    falling back to NVIDIA NIM if Regex fails.
     """
 
     def __init__(self):
-        self.gemini_key = settings.llm_api_key
-        self.gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.gemini_key}"
+        pass
 
     def regex_extract(self, text: str) -> Optional[Dict]:
         """
@@ -88,34 +85,12 @@ class LLMExtractor:
         {text}
         """
 
-        # If Gemini key is specified, hit Gemini directly
-        if self.gemini_key:
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}]
-            }
-            async with httpx.AsyncClient() as client:
-                try:
-                    response = await client.post(self.gemini_url, json=payload, timeout=15.0)
-                    response.raise_for_status()
-                    data = response.json()
-                    candidates = data.get("candidates", [])
-                    if not candidates:
-                        return None
-                    output_text = candidates[0]["content"]["parts"][0]["text"]
-                    return self._clean_and_parse_json(output_text)
-                except Exception as e:
-                    logger.error(f"[LLMExtractor] Gemini call failed: {e}")
-                    # Let it fall back to OpenRouter below!
-
-        # Fallback: Hit OpenRouter (already configured in main project)
-        if settings.openrouter_api_key:
+        # Fallback: hit NVIDIA NIM only.
+        client = get_llm_client()
+        if client:
             try:
-                client = AsyncOpenAI(
-                    api_key=settings.openrouter_api_key,
-                    base_url=settings.openrouter_base_url,
-                )
                 response = await client.chat.completions.create(
-                    model=settings.llm_model,
+                    model=get_llm_model(),
                     messages=[
                         {"role": "system", "content": "You are a precise JSON extractor. Respond only with raw JSON (no formatting fences)."},
                         {"role": "user", "content": prompt}
@@ -126,10 +101,10 @@ class LLMExtractor:
                 output_text = response.choices[0].message.content or ""
                 return self._clean_and_parse_json(output_text)
             except Exception as e:
-                logger.error(f"[LLMExtractor] OpenRouter fallback failed: {e}")
+                logger.error(f"[LLMExtractor] NVIDIA NIM extraction failed: {e}")
                 return None
 
-        logger.warning("[LLMExtractor] No working LLM API credentials available.")
+        logger.warning("[LLMExtractor] NVIDIA_API_KEY is not configured.")
         return None
 
     def _clean_and_parse_json(self, raw_text: str) -> Optional[Dict]:

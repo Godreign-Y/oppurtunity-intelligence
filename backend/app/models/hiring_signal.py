@@ -27,6 +27,8 @@ class HiringSignal(Base):
     posted_date = Column(String(100), nullable=True)
     sanitized_description = Column(Text, nullable=True)
     detected_tech_stack = Column(JSON, nullable=True)  # List[str]
+    source_url = Column(Text, nullable=True)
+    opportunity_category = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     company = relationship("Company", back_populates="hiring_signals")

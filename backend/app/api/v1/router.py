@@ -11,6 +11,8 @@ from app.api.v1.endpoints.signals import router as signals_router
 from app.api.v1.endpoints.git_issues import router as git_issues_router
 from app.api.v1.endpoints.funding import router as funding_router
 from app.api.v1.endpoints.hiring import router as hiring_router
+from app.api.v1.endpoints.outreach import router as outreach_router
+from app.api.v1.endpoints.service_intelligence import router as service_intelligence_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -19,3 +21,5 @@ api_router.include_router(signals_router, tags=["signals"])
 api_router.include_router(git_issues_router, prefix="/git-issues", tags=["git-issues"])
 api_router.include_router(funding_router, prefix="/funding", tags=["funding"])
 api_router.include_router(hiring_router, prefix="/hiring", tags=["hiring"])
+api_router.include_router(outreach_router, prefix="/outreach", tags=["outreach"])
+api_router.include_router(service_intelligence_router, prefix="/service-intelligence", tags=["service-intelligence"])

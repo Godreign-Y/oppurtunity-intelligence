@@ -10,6 +10,7 @@ from sqlalchemy import select
 
 from app.models.github_signal import GitHubSignal
 from app.models.normalized_signal import NormalizedSignal
+from app.services.github.service import infer_github_opportunity_category
 
 from app.normalization.rules import (
     detect_ecosystem,
@@ -61,6 +62,11 @@ class NormalizationService:
                 continue
 
             text = f"{gh.title} {gh.content}"
+            labels = (gh.metadata_json or {}).get("labels", [])
+            opportunity_category = gh.opportunity_category or infer_github_opportunity_category(
+                gh.title,
+                labels,
+            )
 
             normalized = NormalizedSignal(
                 github_signal_id=gh.id,
@@ -68,6 +74,7 @@ class NormalizationService:
                 severity=detect_severity(text),
                 ecosystem=detect_ecosystem(text),
                 confidence=calculate_confidence(text),
+                opportunity_category=opportunity_category,
             )
 
             self.db.add(normalized)

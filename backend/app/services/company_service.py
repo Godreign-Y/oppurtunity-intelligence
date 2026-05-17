@@ -14,29 +14,39 @@ from app.models.company import Company
 from app.models.signal import Signal
 from app.schemas.signal import UnifiedSignalSchema
 from app.schemas.company import CompanyCreate
+from app.config.category_mapper import map_pain_list_to_category, map_to_opportunity_category
 
 logger = logging.getLogger(__name__)
 
 
 def get_or_create_company(db: Session, name: str, domain: Optional[str] = None) -> Company:
     """
-    Retrieve an existing company by name or create a new record.
+    Retrieve an existing company by name (case-insensitive) or create a new record.
+    Company names are stored in Title Case for consistency.
 
     Args:
         db: SQLAlchemy database session.
-        name: Company name.
+        name: Company name (any case).
         domain: Optional company domain.
 
     Returns:
         Company ORM instance.
     """
-    company = db.query(Company).filter(Company.name == name).first()
+    # Normalize to Title Case, strip whitespace
+    normalized_name = name.strip().title()
+
+    # Case-insensitive lookup to prevent duplicates ("spotify" vs "Spotify")
+    company = (
+        db.query(Company)
+        .filter(Company.name.ilike(normalized_name))
+        .first()
+    )
     if not company:
-        company = Company(name=name, domain=domain)
+        company = Company(name=normalized_name, domain=domain)
         db.add(company)
         db.commit()
         db.refresh(company)
-        logger.info(f"[CompanyService] Created company: {name}")
+        logger.info(f"[CompanyService] Created company: {normalized_name}")
     return company
 
 
@@ -106,7 +116,6 @@ def save_signals(
             try:
                 ts = datetime.fromisoformat(s.timestamp.replace("Z", "+00:00"))
             except (ValueError, TypeError, AttributeError):
-                # Try parsing relative times or simple formats if needed, or leave as None
                 pass
 
         record = Signal(
@@ -118,6 +127,8 @@ def save_signals(
             pain_indicators=s.pain_indicators,
             business_implications=s.business_implications,
             opportunity_mapping=s.opportunity_mapping,
+            opportunity_category=s.opportunity_category
+            or map_pain_list_to_category(s.pain_indicators or []),
             confidence=s.confidence,
             evidence=s.evidence,
             source_url=s.source_url,
@@ -139,7 +150,7 @@ def save_signals(
 
 def get_company_signals(db: Session, company_name: str) -> list[Signal]:
     """
-    Retrieve all signals for a company by name.
+    Retrieve all signals for a company by name (case-insensitive).
 
     Args:
         db: SQLAlchemy database session.
@@ -148,7 +159,7 @@ def get_company_signals(db: Session, company_name: str) -> list[Signal]:
     Returns:
         List of Signal ORM instances.
     """
-    company = db.query(Company).filter(Company.name == company_name).first()
+    company = db.query(Company).filter(Company.name.ilike(company_name.strip())).first()
     if not company:
         return []
     return company.signals
@@ -174,54 +185,68 @@ def save_market_pain_signals(
 ) -> list:
     """
     Persist market pain signals to the database.
+    Accepts both dict and Pydantic model instances.
 
     Args:
         db: SQLAlchemy database session.
         company: Company ORM instance.
-        signals: List of MarketPainSignalSchema instances.
+        signals: List of MarketPainSignalSchema instances or dicts.
 
     Returns:
         List of persisted MarketPainSignal ORM instances.
     """
     from app.models.market_pain import MarketPainSignal
 
+    def _get(signal: any, key: str, default: any = None) -> any:
+        """Dict-safe getter for both dict and Pydantic model instances."""
+        if isinstance(signal, dict):
+            return signal.get(key, default)
+        return getattr(signal, key, default)
+
     saved = []
     for s in signals:
         ts = None
-        if s.timestamp:
+        timestamp = _get(s, "timestamp")
+        if timestamp:
             try:
-                ts = datetime.fromisoformat(s.timestamp.replace("Z", "+00:00"))
+                ts = datetime.fromisoformat(str(timestamp).replace("Z", "+00:00"))
             except (ValueError, AttributeError):
                 pass
 
+        pain_category = _get(s, "pain_category")
+        opportunity_category = _get(s, "opportunity_category")
+        if not opportunity_category:
+            opportunity_category = map_to_opportunity_category(pain_category or "enterprise_reliability")
+
         record = MarketPainSignal(
             company_id=company.id,
-            source=s.source,
-            post_id=s.post_id,
-            subreddit=s.subreddit,
-            title=s.title,
-            body=s.body,
-            url=s.url,
-            author=s.author,
-            upvotes=s.upvotes,
-            num_comments=s.num_comments,
-            product=s.product,
-            company_name_detected=s.company,
-            technologies=s.technologies,
-            workflows=s.workflows,
-            pain_category=s.pain_category,
-            pain_subcategories=s.pain_subcategories,
-            workflow_pains=s.workflow_pains,
-            severity=s.severity,
-            tech_confidence=s.tech_confidence,
-            sentiment_score=s.sentiment_score,
-            business_relevance=s.business_relevance,
-            momentum_score=s.momentum_score,
-            strategic_fit_score=s.strategic_fit_score,
-            confidence=s.confidence,
-            capability_matches=s.capability_matches,
-            matched_practices=s.matched_practices,
-            matched_accelerators=s.matched_accelerators,
+            source=_get(s, "source", "reddit"),
+            post_id=_get(s, "post_id"),
+            subreddit=_get(s, "subreddit"),
+            title=_get(s, "title"),
+            body=_get(s, "body"),
+            url=_get(s, "url"),
+            author=_get(s, "author"),
+            upvotes=_get(s, "upvotes", 0),
+            num_comments=_get(s, "num_comments", 0),
+            product=_get(s, "product"),
+            company_name_detected=_get(s, "company"),
+            technologies=_get(s, "technologies", []),
+            workflows=_get(s, "workflows", []),
+            pain_category=pain_category,
+            opportunity_category=opportunity_category,
+            pain_subcategories=_get(s, "pain_subcategories", []),
+            workflow_pains=_get(s, "workflow_pains", []),
+            severity=_get(s, "severity", "low"),
+            tech_confidence=_get(s, "tech_confidence", 0.0),
+            sentiment_score=_get(s, "sentiment_score", 0.0),
+            business_relevance=_get(s, "business_relevance", 0.0),
+            momentum_score=_get(s, "momentum_score", 0.0),
+            strategic_fit_score=_get(s, "strategic_fit_score", 0.0),
+            confidence=_get(s, "confidence", 0.0),
+            capability_matches=_get(s, "capability_matches", []),
+            matched_practices=_get(s, "matched_practices", []),
+            matched_accelerators=_get(s, "matched_accelerators", []),
             timestamp=ts,
         )
         db.add(record)
@@ -234,7 +259,7 @@ def save_market_pain_signals(
 
 def get_company_market_pain_signals(db: Session, company_name: str) -> list:
     """
-    Retrieve all market pain signals for a company by name.
+    Retrieve all market pain signals for a company by name (case-insensitive).
 
     Args:
         db: SQLAlchemy database session.
@@ -243,7 +268,7 @@ def get_company_market_pain_signals(db: Session, company_name: str) -> list:
     Returns:
         List of MarketPainSignal ORM instances.
     """
-    company = db.query(Company).filter(Company.name == company_name).first()
+    company = db.query(Company).filter(Company.name.ilike(company_name.strip())).first()
     if not company:
         return []
     return company.market_pain_signals

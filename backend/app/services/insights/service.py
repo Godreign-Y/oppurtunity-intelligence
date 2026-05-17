@@ -108,6 +108,7 @@ class InsightService:
                 "comments": (s.metadata_json or {}).get("comments"),
                 "labels": (s.metadata_json or {}).get("labels", []),
                 "query": (s.metadata_json or {}).get("query"),
+                "opportunity_category": s.opportunity_category,
             }
             for s in signals
         ]
@@ -134,6 +135,7 @@ class InsightService:
                 "org": (gh.metadata_json or {}).get("org"),
                 "repo": (gh.metadata_json or {}).get("repo"),
                 "created_at": gh.created_at.isoformat() if gh.created_at else None,
+                "opportunity_category": ns.opportunity_category or gh.opportunity_category,
             }
             for ns, gh in rows
         ]

@@ -22,3 +22,4 @@ class GitHubIssue(BaseModel):
     created_at: datetime
     source_url: str
     query_used: str
+    opportunity_category: str | None = None

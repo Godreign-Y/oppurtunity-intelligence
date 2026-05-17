@@ -55,6 +55,7 @@ class Signal(Base):
     confidence: float = Column(Float, default=0.0)
     evidence: list = Column(JSON, default=list)
     source_url: str = Column(Text, nullable=True)
+    opportunity_category: str = Column(String(100), nullable=True)  # One of 6 canonical categories
     ai_analysis: dict = Column(JSON, nullable=True)
     role_title: str = Column(String(255), nullable=True)
     department: str = Column(String(255), nullable=True)

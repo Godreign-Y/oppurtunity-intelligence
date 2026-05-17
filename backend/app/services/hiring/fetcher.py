@@ -15,14 +15,22 @@ logger = logging.getLogger(__name__)
 
 
 class RawJobPosting:
-    def __init__(self, job_title: str, company_name: str, raw_description: str, posted_date: str = None):
+    def __init__(
+        self,
+        job_title: str,
+        company_name: str,
+        raw_description: str,
+        posted_date: str = None,
+        source_url: str | None = None,
+    ):
         self.job_title = job_title
         self.company_name = company_name
         self.raw_description = raw_description
         self.posted_date = posted_date or "Recently"
+        self.source_url = source_url
 
 
-async def fetch_jobs() -> List[RawJobPosting]:
+async def fetch_jobs(company_name: str | None = None) -> List[RawJobPosting]:
     """
     Fetches job postings from SerpApi Google Jobs.
     Falls back to high-fidelity simulated job postings if SERPAPI_API_KEY is not set.
@@ -31,10 +39,11 @@ async def fetch_jobs() -> List[RawJobPosting]:
 
     if not api_key:
         logger.warning("[HiringFetcher] SERPAPI_API_KEY is not set. Using offline high-fidelity job simulation.")
-        return get_simulated_jobs()
+        return get_simulated_jobs(company_name)
 
     url = "https://serpapi.com/search"
-    query = '("DevOps" OR "Cloud Migration" OR "Kubernetes") "product"'
+    company_clause = f'"{company_name}" ' if company_name else ""
+    query = f'{company_clause}("DevOps" OR "Cloud Migration" OR "Kubernetes" OR "MLOps" OR "AI Infrastructure")'
     
     params = {
         "engine": "google_jobs",
@@ -58,12 +67,17 @@ async def fetch_jobs() -> List[RawJobPosting]:
                 description = job.get("description") or ""
                 extensions = job.get("detected_extensions") or {}
                 posted = extensions.get("posted_at") or "Recently"
+                apply_options = job.get("apply_options") or []
+                source_url = job.get("share_link")
+                if not source_url and apply_options:
+                    source_url = apply_options[0].get("link")
 
                 validated_jobs.append(RawJobPosting(
                     job_title=title,
                     company_name=company,
                     raw_description=description,
-                    posted_date=posted
+                    posted_date=posted,
+                    source_url=source_url,
                 ))
             
             logger.info(f"[HiringFetcher] Successfully fetched {len(validated_jobs)} real job listings from SerpApi.")
@@ -71,11 +85,25 @@ async def fetch_jobs() -> List[RawJobPosting]:
 
     except Exception as e:
         logger.error(f"[HiringFetcher] SerpApi query failed: {e}. Falling back to offline simulation.")
-        return get_simulated_jobs()
+        return get_simulated_jobs(company_name)
 
 
-def get_simulated_jobs() -> List[RawJobPosting]:
+def get_simulated_jobs(company_name: str | None = None) -> List[RawJobPosting]:
     """Generates premium simulated jobs mapping tech stack requirements for leading product companies."""
+    if company_name:
+        return [
+            RawJobPosting(
+                job_title="Senior Platform Infrastructure Engineer",
+                company_name=company_name,
+                raw_description=(
+                    "We are scaling Kubernetes, Terraform, CI/CD automation, Docker, "
+                    "cloud migration, observability, and AI infrastructure platforms."
+                ),
+                posted_date="Recently",
+                source_url=None,
+            )
+        ]
+
     return [
         RawJobPosting(
             job_title="Senior DevOps & Infrastructure Engineer",

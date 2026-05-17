@@ -34,6 +34,7 @@ class FundingEventBase(BaseModel):
     source_url: Optional[str] = None
     raw_text: Optional[str] = None
     opportunity_score: Optional[int] = None
+    opportunity_category: Optional[str] = None
 
 
 class FundingEventCreate(FundingEventBase):

@@ -8,11 +8,7 @@ import re
 from typing import List
 from bs4 import BeautifulSoup
 
-
-TARGET_KEYWORDS = [
-    "AWS", "GCP", "Azure", "Kubernetes", "Docker", "Python", "React",
-    "Node.js", "Legacy", "Migration", "Microservices", "CI/CD", "Terraform"
-]
+from app.config.keywords.tech_stack_keywords import TECH_STACK_KEYWORDS
 
 
 def sanitize_text(raw_html: str) -> str:
@@ -32,7 +28,7 @@ def extract_tech_stack(text: str) -> List[str]:
     detected_stack: List[str] = []
     text_lower = text.lower()
     
-    for keyword in TARGET_KEYWORDS:
+    for keyword in TECH_STACK_KEYWORDS:
         pattern = r'\b' + re.escape(keyword.lower()) + r'\b'
         if re.search(pattern, text_lower):
             detected_stack.append(keyword)

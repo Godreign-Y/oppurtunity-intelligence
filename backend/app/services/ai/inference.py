@@ -2,16 +2,14 @@
 app/services/ai/inference.py
 
 AI inference layer: takes normalized signals and produces explainable
-opportunity intelligence using an OpenRouter-hosted LLM.
+opportunity intelligence using NVIDIA NIM.
 """
 
 import json
 import logging
-from typing import Optional
+from typing import Optional, Any
 
-from openai import AsyncOpenAI
-
-from app.core.config import settings
+from app.clients.llm import get_llm_client, get_llm_model
 from app.schemas.signal import UnifiedSignalSchema, AIOpportunityOutput
 
 logger = logging.getLogger(__name__)
@@ -20,9 +18,11 @@ SYSTEM_PROMPT = """You are an expert IT opportunity intelligence analyst.
 Given a set of structured signals extracted from a company's career pages, engineering blogs, and market pain signals (such as Reddit community workflow frustrations),
 your task is to produce a concise, actionable opportunity assessment that incorporates capability mapping, temporal urgency, strategic fit, and organizational strengths.
 
+IMPORTANT: If there is no data for a certain aspect, or if there is no data at all, clearly state that the data is missing. DO NOT hallucinate. If you do not have enough data to determine an opportunity, set detected_opportunity to 'Insufficient Data', confidence to 0.0, and explain in the reasoning.
+
 Respond ONLY with a JSON object matching this schema (no markdown, no preamble):
 {
-  "detected_opportunity": "<short opportunity label>",
+  "detected_opportunity": "<short opportunity label or 'Insufficient Data'>",
   "confidence": <float 0.0–1.0>,
   "reasoning": ["<reason 1>", "<reason 2>", ...],
   "recommended_outreach": {
@@ -95,14 +95,19 @@ def _build_market_pain_context(market_pain_signals: list) -> str:
     practices: set[str] = set()
     sample_pains: list[str] = []
 
+    def _get(s, key, default=None):
+        return s.get(key, default) if isinstance(s, dict) else getattr(s, key, default)
+
     for sig in market_pain_signals[:10]:
-        if sig.pain_category:
-            pain_categories[sig.pain_category] = pain_categories.get(sig.pain_category, 0) + 1
-        severities.append(sig.severity)
-        if hasattr(sig, 'matched_practices'):
-            practices.update(sig.matched_practices or [])
-        if sig.title:
-            sample_pains.append(f"  - [{sig.subreddit}] {sig.title[:80]}")
+        pain_cat = _get(sig, 'pain_category')
+        if pain_cat:
+            pain_categories[pain_cat] = pain_categories.get(pain_cat, 0) + 1
+        severities.append(str(_get(sig, 'severity', 'unknown')))
+        practices.update(_get(sig, 'matched_practices', []) or [])
+        title = _get(sig, 'title')
+        subreddit = _get(sig, 'subreddit', 'unknown')
+        if title:
+            sample_pains.append(f'  - [{subreddit}] {str(title)[:80]}')
 
     sorted_pains = sorted(pain_categories.items(), key=lambda x: x[1], reverse=True)
 
@@ -117,19 +122,6 @@ def _build_market_pain_context(market_pain_signals: list) -> str:
 {chr(10).join(sample_pains[:5])}"""
 
     return section
-
-
-def _get_llm_client() -> AsyncOpenAI:
-    """
-    Instantiate the OpenAI-compatible client pointed at OpenRouter.
-
-    Returns:
-        AsyncOpenAI client configured for OpenRouter.
-    """
-    return AsyncOpenAI(
-        api_key=settings.openrouter_api_key,
-        base_url=settings.openrouter_base_url,
-    )
 
 
 async def run_ai_inference(
@@ -153,11 +145,11 @@ async def run_ai_inference(
         logger.warning(f"[AIInference] No signals to analyze for {company_name}")
         return None
 
-    if not settings.openrouter_api_key:
-        logger.warning("[AIInference] OPENROUTER_API_KEY not set — skipping AI inference.")
+    client = get_llm_client()
+    if not client:
+        logger.warning("[AIInference] No LLM API key set; skipping AI inference.")
         return None
 
-    client = _get_llm_client()
     user_prompt = _build_user_prompt(signals or [], company_name)
 
     # Append market pain context if available
@@ -166,7 +158,7 @@ async def run_ai_inference(
 
     try:
         response = await client.chat.completions.create(
-            model=settings.llm_model,
+            model=get_llm_model(),
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},

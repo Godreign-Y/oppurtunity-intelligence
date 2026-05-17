@@ -48,6 +48,7 @@ class MarketPainSignal(Base):
 
     # Pain analysis
     pain_category = Column(String(100), nullable=True)
+    opportunity_category = Column(String(100), nullable=True)  # One of 6 canonical categories
     pain_subcategories = Column(JSON, default=list)
     workflow_pains = Column(JSON, default=list)
     severity = Column(String(50), default="low")

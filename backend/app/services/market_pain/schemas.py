@@ -104,6 +104,7 @@ class MarketPainSignalSchema(BaseModel):
 
     # Pain analysis
     pain_category: str = ""
+    opportunity_category: str = ""
     pain_subcategories: list[str] = Field(default_factory=list)
     workflow_pains: list[str] = Field(default_factory=list)
     severity: str = "low"

@@ -25,5 +25,6 @@ class NormalizedSignal(Base):
     severity: Mapped[str] = mapped_column(String(50))
     ecosystem: Mapped[str] = mapped_column(String(50))
     confidence: Mapped[float] = mapped_column(Float)
+    opportunity_category: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
