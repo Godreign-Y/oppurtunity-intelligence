@@ -1,0 +1,740 @@
+-- =========================================================
+-- RELANTO OPPORTUNITY INTELLIGENCE PLATFORM
+-- PRODUCTION-READY NEON POSTGRESQL SCHEMA
+-- =========================================================
+-- Covers:
+-- - Opportunities
+-- - Practices
+-- - Technologies
+-- - Delivery Intelligence
+-- - Capability Intelligence
+-- - Opportunity Scoring
+-- - Signals
+-- - Past Deals
+-- - Executive Recommendations
+-- - Risk Intelligence
+-- =========================================================
+ 
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+ 
+-- =========================================================
+-- 1. COMPANIES
+-- =========================================================
+ 
+CREATE TABLE companies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ 
+    company_name VARCHAR(255) NOT NULL,
+    legal_name VARCHAR(255),
+ 
+    website VARCHAR(255),
+    linkedin_url VARCHAR(255),
+ 
+    description TEXT,
+ 
+    headquarters VARCHAR(255),
+ 
+    founded_year INTEGER,
+ 
+    employee_count INTEGER,
+ 
+    revenue_range VARCHAR(100),
+ 
+    ai_maturity_level VARCHAR(50),
+ 
+    transformation_focus TEXT,
+ 
+    market_positioning TEXT,
+ 
+    primary_regions TEXT[],
+ 
+    active_status BOOLEAN DEFAULT TRUE,
+ 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- =========================================================
+-- SEED RELANTO
+-- =========================================================
+ 
+INSERT INTO companies (
+    company_name,
+    legal_name,
+    website,
+    description,
+    headquarters,
+    employee_count,
+    ai_maturity_level,
+    transformation_focus,
+    market_positioning,
+    primary_regions
+)
+VALUES (
+    'Relanto',
+    'Relanto Global Private Limited',
+    'https://relanto.ai',
+ 
+    'AI-ingrained consulting, enterprise transformation, cloud modernization, Salesforce optimization, workflow intelligence, planning transformation, and intelligent automation company.',
+ 
+    'India',
+ 
+    1000,
+ 
+    'Advanced',
+ 
+    'Enterprise AI, Data Engineering, Workflow Automation, Planning Transformation, Salesforce Optimization, Decision Intelligence',
+ 
+    'AI-first enterprise transformation partner with accelerator-led delivery model',
+ 
+    ARRAY[
+        'India',
+        'United States',
+        'Canada',
+        'UAE',
+        'Mexico'
+    ]
+);
+ 
+-- =========================================================
+-- 2. PRACTICES
+-- =========================================================
+ 
+CREATE TABLE practices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ 
+    company_id UUID REFERENCES companies(id),
+ 
+    practice_name VARCHAR(255) NOT NULL,
+ 
+    practice_code VARCHAR(50) UNIQUE,
+ 
+    practice_category VARCHAR(100),
+ 
+    description TEXT,
+ 
+    maturity_level VARCHAR(50),
+ 
+    strategic_priority VARCHAR(50),
+ 
+    delivery_strength INTEGER CHECK (delivery_strength BETWEEN 1 AND 10),
+ 
+    bench_strength INTEGER,
+ 
+    sme_count INTEGER,
+ 
+    utilization_percentage NUMERIC(5,2),
+ 
+    growth_priority BOOLEAN DEFAULT FALSE,
+ 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- =========================================================
+-- SEED PRACTICES
+-- =========================================================
+ 
+INSERT INTO practices (
+    company_id,
+    practice_name,
+    practice_code,
+    practice_category,
+    description,
+    maturity_level,
+    strategic_priority,
+    delivery_strength,
+    bench_strength,
+    sme_count,
+    utilization_percentage,
+    growth_priority
+)
+SELECT
+    c.id,
+ 
+    p.practice_name,
+    p.practice_code,
+    p.practice_category,
+    p.description,
+    p.maturity_level,
+    p.strategic_priority,
+    p.delivery_strength,
+    p.bench_strength,
+    p.sme_count,
+    p.utilization_percentage,
+    p.growth_priority
+ 
+FROM companies c,
+ 
+(
+VALUES
+ 
+(
+'Data & AI',
+'PRA_DATA_AI',
+'AI',
+'Enterprise AI, data engineering, GenAI systems, analytics modernization, AI orchestration, and decision intelligence.',
+'Advanced',
+'Critical',
+10,
+180,
+35,
+72.5,
+TRUE
+),
+ 
+(
+'AI First Lab',
+'PRA_AI_LAB',
+'Innovation',
+'Agentic AI, GenAI experimentation, AI accelerators, AI-first enterprise modernization, advanced innovation initiatives.',
+'Advanced',
+'Critical',
+9,
+60,
+18,
+65.0,
+TRUE
+),
+ 
+(
+'Digital Transformation',
+'PRA_DIGITAL',
+'Engineering',
+'Frontend engineering, backend engineering, mobile engineering, QA automation, DevOps, cloud-native modernization, enterprise workflow engineering.',
+'Advanced',
+'Critical',
+10,
+350,
+45,
+78.0,
+TRUE
+),
+ 
+(
+'Salesforce',
+'PRA_SALESFORCE',
+'Enterprise Platforms',
+'Salesforce optimization, CRM modernization, RevOps transformation, automation, customer workflows.',
+'Advanced',
+'High',
+9,
+120,
+22,
+74.0,
+TRUE
+),
+ 
+(
+'Planning',
+'PRA_PLANNING',
+'Business Transformation',
+'Enterprise planning transformation, forecasting, analytics modernization, operational intelligence, planning automation.',
+'Advanced',
+'High',
+8,
+80,
+14,
+69.0,
+TRUE
+)
+ 
+) AS p(
+practice_name,
+practice_code,
+practice_category,
+description,
+maturity_level,
+strategic_priority,
+delivery_strength,
+bench_strength,
+sme_count,
+utilization_percentage,
+growth_priority
+)
+ 
+WHERE c.company_name = 'Relanto';
+ 
+-- =========================================================
+-- 3. TECHNOLOGIES
+-- =========================================================
+ 
+CREATE TABLE technologies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ 
+    technology_name VARCHAR(255) UNIQUE NOT NULL,
+ 
+    technology_category VARCHAR(100),
+ 
+    vendor VARCHAR(100),
+ 
+    maturity_level VARCHAR(50),
+ 
+    market_trend_score INTEGER CHECK (market_trend_score BETWEEN 1 AND 10),
+ 
+    strategic_importance INTEGER CHECK (strategic_importance BETWEEN 1 AND 10),
+ 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- =========================================================
+-- SEED TECHNOLOGIES
+-- =========================================================
+ 
+INSERT INTO technologies (
+    technology_name,
+    technology_category,
+    vendor,
+    maturity_level,
+    market_trend_score,
+    strategic_importance
+)
+VALUES
+ 
+('AWS', 'Cloud', 'Amazon', 'Advanced', 10, 10),
+('Azure', 'Cloud', 'Microsoft', 'Advanced', 10, 10),
+('Google Cloud', 'Cloud', 'Google', 'Advanced', 9, 9),
+ 
+('Kubernetes', 'DevOps', 'CNCF', 'Advanced', 10, 10),
+('Terraform', 'Infrastructure', 'HashiCorp', 'Advanced', 9, 9),
+ 
+('Snowflake', 'Data', 'Snowflake', 'Advanced', 9, 9),
+('Databricks', 'Data', 'Databricks', 'Advanced', 10, 10),
+ 
+('OpenAI', 'AI', 'OpenAI', 'Advanced', 10, 10),
+('LangChain', 'AI', 'LangChain', 'Intermediate', 9, 9),
+('Vector Databases', 'AI', 'Multiple', 'Intermediate', 10, 10),
+ 
+('Salesforce', 'CRM', 'Salesforce', 'Advanced', 10, 10),
+ 
+('React', 'Frontend', 'Meta', 'Advanced', 9, 8),
+('Next.js', 'Frontend', 'Vercel', 'Advanced', 9, 9),
+ 
+('Python', 'Backend', 'Python Foundation', 'Advanced', 10, 10),
+('Node.js', 'Backend', 'OpenJS', 'Advanced', 9, 9),
+ 
+('PostgreSQL', 'Database', 'PostgreSQL', 'Advanced', 9, 9),
+ 
+('Docker', 'DevOps', 'Docker', 'Advanced', 10, 10),
+ 
+('Jenkins', 'CI/CD', 'Jenkins', 'Advanced', 8, 8),
+ 
+('GitHub Actions', 'CI/CD', 'GitHub', 'Advanced', 9, 9);
+ 
+-- =========================================================
+-- 4. OPPORTUNITIES
+-- =========================================================
+ 
+CREATE TABLE opportunities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ 
+    opportunity_name VARCHAR(255) NOT NULL,
+ 
+    opportunity_code VARCHAR(50) UNIQUE,
+ 
+    opportunity_category VARCHAR(100),
+ 
+    description TEXT,
+ 
+    market_growth_score INTEGER CHECK (market_growth_score BETWEEN 1 AND 10),
+ 
+    implementation_complexity INTEGER CHECK (implementation_complexity BETWEEN 1 AND 10),
+ 
+    delivery_risk_level INTEGER CHECK (delivery_risk_level BETWEEN 1 AND 10),
+ 
+    strategic_priority VARCHAR(50),
+ 
+    avg_deal_size_usd BIGINT,
+ 
+    transformation_type VARCHAR(100),
+ 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- =========================================================
+-- SEED PRIORITY OPPORTUNITIES
+-- =========================================================
+ 
+INSERT INTO opportunities (
+    opportunity_name,
+    opportunity_code,
+    opportunity_category,
+    description,
+    market_growth_score,
+    implementation_complexity,
+    delivery_risk_level,
+    strategic_priority,
+    avg_deal_size_usd,
+    transformation_type
+)
+VALUES
+ 
+(
+'AI Infrastructure',
+'OPP_AI_INFRA',
+'AI Transformation',
+'Enterprise AI infrastructure modernization involving orchestration, GPU systems, vector databases, scalable model serving, and enterprise AI operations.',
+10,
+9,
+8,
+'Critical',
+2500000,
+'AI Modernization'
+),
+ 
+(
+'Cloud Migration',
+'OPP_CLOUD_MIGRATION',
+'Cloud Transformation',
+'Migration of enterprise systems and workloads to scalable cloud-native architectures.',
+9,
+8,
+7,
+'Critical',
+1800000,
+'Infrastructure Modernization'
+),
+ 
+(
+'DevOps Modernization',
+'OPP_DEVOPS',
+'Engineering Transformation',
+'CI/CD modernization, infrastructure automation, Kubernetes enablement, platform engineering, and DevOps maturity transformation.',
+9,
+7,
+6,
+'High',
+1200000,
+'Engineering Modernization'
+),
+ 
+(
+'MLOps Scaling',
+'OPP_MLOPS',
+'AI Operations',
+'Scaling AI deployment, observability, governance, ML lifecycle automation, and production AI systems.',
+10,
+9,
+8,
+'Critical',
+2200000,
+'AI Operations'
+),
+ 
+(
+'Legacy Refactoring',
+'OPP_LEGACY',
+'Application Modernization',
+'Refactoring monolithic enterprise systems into scalable cloud-native modern architectures.',
+8,
+8,
+7,
+'High',
+1600000,
+'Application Modernization'
+),
+ 
+(
+'Cost Optimization',
+'OPP_COST_OPT',
+'Operational Efficiency',
+'Cloud cost optimization, infrastructure efficiency, FinOps, automation-led operational cost reduction.',
+9,
+6,
+4,
+'Critical',
+900000,
+'Cost Transformation'
+);
+ 
+-- =========================================================
+-- 5. OPPORTUNITY PRACTICE MAPPING
+-- =========================================================
+ 
+CREATE TABLE opportunity_practice_mapping (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ 
+    opportunity_id UUID REFERENCES opportunities(id) ON DELETE CASCADE,
+ 
+    practice_id UUID REFERENCES practices(id) ON DELETE CASCADE,
+ 
+    relevance_score INTEGER CHECK (relevance_score BETWEEN 1 AND 10),
+ 
+    mapping_type VARCHAR(50),
+ 
+    execution_dependency TEXT,
+ 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- =========================================================
+-- SEED OPPORTUNITY ↔ PRACTICE RELATIONS
+-- =========================================================
+ 
+INSERT INTO opportunity_practice_mapping (
+    opportunity_id,
+    practice_id,
+    relevance_score,
+    mapping_type,
+    execution_dependency
+)
+ 
+SELECT
+    o.id,
+    p.id,
+ 
+    CASE
+ 
+        WHEN o.opportunity_code = 'OPP_AI_INFRA'
+        AND p.practice_code IN ('PRA_DATA_AI', 'PRA_AI_LAB')
+        THEN 10
+ 
+        WHEN o.opportunity_code = 'OPP_MLOPS'
+        AND p.practice_code IN ('PRA_DATA_AI', 'PRA_AI_LAB')
+        THEN 10
+ 
+        WHEN o.opportunity_code = 'OPP_DEVOPS'
+        AND p.practice_code = 'PRA_DIGITAL'
+        THEN 10
+ 
+        WHEN o.opportunity_code = 'OPP_CLOUD_MIGRATION'
+        AND p.practice_code = 'PRA_DIGITAL'
+        THEN 10
+ 
+        WHEN o.opportunity_code = 'OPP_LEGACY'
+        AND p.practice_code = 'PRA_DIGITAL'
+        THEN 9
+ 
+        WHEN o.opportunity_code = 'OPP_COST_OPT'
+        AND p.practice_code IN ('PRA_DIGITAL', 'PRA_PLANNING')
+        THEN 8
+ 
+        WHEN o.opportunity_code = 'OPP_AI_INFRA'
+        AND p.practice_code = 'PRA_PLANNING'
+        THEN 7
+ 
+        ELSE 6
+ 
+    END,
+ 
+    'Primary',
+ 
+    'Strategic execution dependency'
+ 
+FROM opportunities o
+CROSS JOIN practices p;
+ 
+-- =========================================================
+-- 6. CAPABILITY FACTORS
+-- =========================================================
+ 
+CREATE TABLE capability_factors (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ 
+    factor_name VARCHAR(255),
+ 
+    factor_category VARCHAR(100),
+ 
+    why_it_matters TEXT,
+ 
+    scoring_type VARCHAR(50),
+ 
+    priority_weight NUMERIC(5,2),
+ 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- =========================================================
+-- SEED CAPABILITY FACTORS
+-- =========================================================
+ 
+INSERT INTO capability_factors (
+    factor_name,
+    factor_category,
+    why_it_matters,
+    scoring_type,
+    priority_weight
+)
+VALUES
+ 
+('Employee Count', 'Delivery Capacity',
+'Determines enterprise delivery scalability and staffing bandwidth.',
+'Numeric', 0.70),
+ 
+('Bench Strength', 'Delivery Capacity',
+'Measures immediately deployable engineering talent.',
+'Numeric', 0.90),
+ 
+('SME Availability', 'Capability',
+'Critical for enterprise transformation and architecture confidence.',
+'Numeric', 0.95),
+ 
+('Tech Stack Familiarity', 'Technical',
+'Determines execution confidence for required technologies.',
+'Numeric', 1.00),
+ 
+('Engineering Maturity', 'Technical',
+'Measures DevOps, QA, automation, reliability, and scalability maturity.',
+'Numeric', 0.95),
+ 
+('AI Readiness', 'AI Capability',
+'Measures enterprise AI operational maturity.',
+'Numeric', 1.00),
+ 
+('Existing Accelerators / IP', 'Differentiation',
+'Improves proposal quality and delivery speed.',
+'Numeric', 0.92),
+ 
+('Domain Expertise', 'Commercial',
+'Improves buyer trust and transformation credibility.',
+'Numeric', 0.88),
+ 
+('Delivery Confidence', 'Execution',
+'Measures likelihood of successful execution.',
+'Numeric', 1.00),
+ 
+('Transformation Urgency', 'Market Intelligence',
+'Indicates buyer urgency and strategic importance.',
+'Numeric', 0.90);
+ 
+-- =========================================================
+-- 7. DELIVERY CAPACITY
+-- =========================================================
+ 
+CREATE TABLE delivery_capacity (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ 
+    company_id UUID REFERENCES companies(id),
+ 
+    practice_id UUID REFERENCES practices(id),
+ 
+    total_engineers INTEGER,
+ 
+    available_engineers INTEGER,
+ 
+    bench_strength INTEGER,
+ 
+    utilization_percentage NUMERIC(5,2),
+ 
+    hiring_velocity INTEGER,
+ 
+    attrition_rate NUMERIC(5,2),
+ 
+    sme_availability_score INTEGER CHECK (sme_availability_score BETWEEN 1 AND 10),
+ 
+    delivery_confidence_score INTEGER CHECK (delivery_confidence_score BETWEEN 1 AND 10),
+ 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- =========================================================
+-- 8. PAST DEALS
+-- =========================================================
+ 
+CREATE TABLE past_deals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ 
+    company_id UUID REFERENCES companies(id),
+ 
+    client_name VARCHAR(255),
+ 
+    project_name VARCHAR(255),
+ 
+    opportunity_type VARCHAR(255),
+ 
+    domain VARCHAR(100),
+ 
+    technologies_used TEXT[],
+ 
+    deal_value_usd BIGINT,
+ 
+    delivery_status VARCHAR(100),
+ 
+    profitability_score INTEGER CHECK (profitability_score BETWEEN 1 AND 10),
+ 
+    client_satisfaction_score INTEGER CHECK (client_satisfaction_score BETWEEN 1 AND 10),
+ 
+    transformation_outcome TEXT,
+ 
+    strategic_value VARCHAR(100),
+ 
+    start_date DATE,
+ 
+    end_date DATE,
+ 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- =========================================================
+-- 9. COMPANY SIGNALS
+-- =========================================================
+ 
+CREATE TABLE company_signals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ 
+    company_id UUID REFERENCES companies(id),
+ 
+    signal_type VARCHAR(100),
+ 
+    signal_source VARCHAR(255),
+ 
+    signal_title VARCHAR(255),
+ 
+    signal_description TEXT,
+ 
+    urgency_level INTEGER CHECK (urgency_level BETWEEN 1 AND 10),
+ 
+    confidence_score INTEGER CHECK (confidence_score BETWEEN 1 AND 10),
+ 
+    business_impact INTEGER CHECK (business_impact BETWEEN 1 AND 10),
+ 
+    detected_date DATE,
+ 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- =========================================================
+-- 10. EXECUTIVE RECOMMENDATIONS
+-- =========================================================
+ 
+CREATE TABLE executive_recommendations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ 
+    company_id UUID REFERENCES companies(id),
+ 
+    opportunity_id UUID REFERENCES opportunities(id),
+ 
+    recommendation_type VARCHAR(100),
+ 
+    recommendation_summary TEXT,
+ 
+    risk_summary TEXT,
+ 
+    staffing_strategy TEXT,
+ 
+    partner_strategy TEXT,
+ 
+    pursuit_strategy TEXT,
+ 
+    confidence_score INTEGER CHECK (confidence_score BETWEEN 1 AND 10),
+ 
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ 
+-- =========================================================
+-- IMPORTANT INDEXES
+-- =========================================================
+ 
+CREATE INDEX idx_practice_code
+ON practices(practice_code);
+ 
+CREATE INDEX idx_opportunity_code
+ON opportunities(opportunity_code);
+ 
+CREATE INDEX idx_company_signals_company
+ON company_signals(company_id);
+ 
+CREATE INDEX idx_opportunity_mapping
+ON opportunity_practice_mapping(opportunity_id);
+ 
+CREATE INDEX idx_delivery_capacity
+ON delivery_capacity(company_id);

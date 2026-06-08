@@ -29,6 +29,8 @@ async def search_tavily(query: str, max_results: int = 5) -> list[dict]:
         logger.warning("TAVILY_API_KEY not set — skipping Tavily search.")
         return []
 
+        # search depth is basic - check if better option exists for more comprehensive search results, but be mindful of rate limits and response times
+
     payload = {
         "api_key": settings.tavily_api_key,
         "query": query,

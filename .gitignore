@@ -8,7 +8,6 @@ __pycache__/
 dist/
 build/
 .uv/
-uv.lock
 
 # Alembic
 alembic/versions/__pycache__/
